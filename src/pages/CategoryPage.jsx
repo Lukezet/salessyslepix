@@ -1,9 +1,10 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams,useNavigate } from "react-router-dom";
 import { products, categories } from "../data/mock";
 import { formatPrice } from "../utils/format";
 import AddButton from "../components/Addbutton";
 
 export default function CategoryPage() {
+   const navigate = useNavigate();
   const { id } = useParams();
   const cid = Number(id);
   const cat = categories.find((c) => c.id === cid);
@@ -12,7 +13,16 @@ export default function CategoryPage() {
   if (!cat) return <p>Categoría no encontrada.</p>;
 
   return (
-    <section className="mx-4">
+    <section className="">
+      <button
+        onClick={() => navigate(-1)}
+        className="fixed flex justify-center items-center opacity-50 hover:opacity-100 top-18 right-4 w-10 h-10  btn-custom z-10"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-6">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+        </svg>
+
+      </button>
       <h1 className="text-2xl font-semibold mb-4">{cat.name}</h1>
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4  ">
         {list.map((p) => (

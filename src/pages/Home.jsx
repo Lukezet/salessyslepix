@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <section className="w-full" >
       <h1 className="text-2xl font-semibold mb-4">Categorías</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mx-2">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {categories.map((c) => (
     <Link to={`/category/${c.id}`} key={c.id} className="group rounded-xl overflow-hidden  hover:shadow transition-shadow">
       <div className="relative h-36 md:h-44 bg-neutral-100">

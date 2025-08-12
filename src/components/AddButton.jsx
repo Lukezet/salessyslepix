@@ -39,18 +39,18 @@ export default function AddButton({ product, className = "" }) {
 
   return (
     <>
-  <div className={`relative w-full ${className}`}>
+  <div className={`relative w-20 h-12 ${className}`}>
     <button className="z-20 top-0 right-0 absolute group cursor-pointer outline-none hover:rotate-90 duration-300" 
      title="Agregar"
         onClick={handleAdd}
         disabled={busy}>
-      <svg xmlns="http://www.w3.org/2000/svg" width="35px" height="35px" viewBox="0 0 24 24" className="stroke-yellow-500 fill-zinc-800 group-active:stroke-zinc-200 group-active:fill-zinc-600 group-active:duration-0 duration-300 ">
+      <svg xmlns="http://www.w3.org/2000/svg" width="40px" height="40px" viewBox="0 0 24 24" className="stroke-yellow-500 fill-zinc-800 group-active:stroke-zinc-200 group-active:fill-zinc-600 group-active:duration-0 duration-300 ">
         <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" strokeWidth="1.5" />
         <path d="M8 12H16" strokeWidth="1.5" />
         <path d="M12 16V8" strokeWidth="1.5" />
       </svg>
     </button>
-    <input className="absolute z-10 top-1 right-4  w-14 h-7 bg-white rounded-l-2xl pl-4 no-spinner"         type="number"
+    <input className="absolute z-10 top-1.5 right-4  w-16 h-7 bg-white rounded-l-2xl pl-4 no-spinner"         type="number"
         min={1}
         inputMode="numeric"
         value={qty}

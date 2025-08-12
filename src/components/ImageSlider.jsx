@@ -21,7 +21,7 @@ export default function ImageSlider({ images = [], alt = "" }) {
 
   return (
     <div className="w-full">
-      <div className="relative overflow-hidden rounded-lg ">
+      <div className="relative overflow-hidden rounded-b-3xl ">
         <img src={images[idx]} alt={alt} className="w-full h-auto select-none"/>
         <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80  rounded-full w-9 h-9 grid place-content-center active:scale-95">‹</button>
         <button onClick={next} className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80  rounded-full w-9 h-9 grid place-content-center active:scale-95">›</button>

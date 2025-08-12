@@ -9,8 +9,17 @@ export default function Navbar() {
   return (
     <header className="bg-yellow-400 sticky top-0 z-20 sm:rounded-br-full">
       <div className="h-14 flex items-center justify-between sm:mr-12">
-        <Link to="/" className="font-bold text-xl select-none ml-4">Lepix</Link>
+        <Link to="/" className="font-bold text-2xl select-none ml-4">Lepix</Link>
+        {/* carrito de compras */}
+        <NavLink to="/cart" className="relative  sm:hidden">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-8">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+            
+          </svg>
+          <span className="absolute top-4 -right-1 font-semibold text-xs rounded-full bg-green-900 text-white p-0.5 px-1">{total}</span>
+        </NavLink>
 
+        
         {/* Botón hamburguesa animado */}
         <button
           aria-label={open ? "Cerrar menú" : "Abrir menú"}
@@ -44,11 +53,18 @@ export default function Navbar() {
           </span>
         </button>
 
+
+
         {/* Nav desktop */}
         <nav className="hidden sm:flex gap-4 items-center">
           <NavLink to="/" className="hover:underline">Inicio</NavLink>
-          <NavLink to="/cart" className="hover:underline">Carrito ({total})</NavLink>
-          <NavLink to="/admin" className="hover:underline">Gestión</NavLink>
+          <NavLink to="/cart" className="relative">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-8">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+            </svg>
+          <span className="absolute top-4 -right-1 font-semibold text-xs rounded-full bg-green-900 text-white p-0.5 px-1">{total}</span>
+          </NavLink>
+          {/* <NavLink to="/admin" className="hover:underline">Gestión</NavLink> */}
         </nav>
       </div>
 

@@ -7,3 +7,6 @@
 
 }
 
+.btn-custom {
+  @apply bg-neutral-800 hover:bg-neutral-700 cursor-pointer border-yellow-500 rounded-xl border-3 active:scale-95 text-white hover:shadow-lg transition duration-150 ease-out;
+}

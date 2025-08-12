@@ -5,7 +5,7 @@ export default function App() {
   return (
     <div className="min-h-dvh w-full flex flex-col bg-white">
       <Navbar />
-      <main className="py-6 flex-1">
+      <main className="flex-1 mx-4 mt-4 ">
         <Outlet />
       </main>
       <footer className="border-t">
