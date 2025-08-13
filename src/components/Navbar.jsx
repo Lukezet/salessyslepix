@@ -9,7 +9,7 @@ export default function Navbar() {
   return (
     <header className="bg-yellow-400 sticky top-0 z-20 sm:rounded-br-full">
       <div className="h-14 flex items-center justify-between sm:mr-12">
-        <Link to="/" className="font-bold text-2xl select-none ml-4">Lepix</Link>
+        <Link to="/" className="font-bold text-2xl select-none ml-4 active:scale-95 transition duration-150 ease-out">Lepix</Link>
         {/* carrito de compras */}
         <NavLink to="/cart" className="relative  sm:hidden">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-8">
@@ -25,7 +25,7 @@ export default function Navbar() {
           aria-label={open ? "Cerrar menú" : "Abrir menú"}
           aria-expanded={open}
           aria-controls="mobile-menu"
-          className="sm:hidden inline-flex items-center justify-center w-10 h-10 mr-4 rounded-md active:scale-95 transition"
+          className="sm:hidden inline-flex items-center justify-center w-10 h-10 mr-4 rounded-md active:scale-95 transition duration-150 ease-out"
           onClick={() => setOpen(o => !o)}
         >
           <span className="relative block w-6 h-4  cursor-pointer">
