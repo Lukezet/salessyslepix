@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getProductById /* o getProductBySlug */ } from "../services/catalog";
 import { formatPrice } from "../utils/format";
@@ -7,13 +7,17 @@ import AddButton from "../components/Addbutton";
 
 export default function ProductDetail() {
   const navigate = useNavigate();
-  const { id } = useParams();                // viene como string desde la URL
-  const pid = Number(id);                    // tu ruta actual usa id numérico
+  const { id } = useParams();
+  const pid = Number(id);
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const [notFound, setNotFound] = useState(false);
+
+  // selección de variantes
+  const [color, setColor] = useState(null);
+  const [size, setSize] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -23,11 +27,17 @@ export default function ProductDetail() {
         setErr(null);
         setNotFound(false);
 
-        // Si en el futuro usás slug: reemplazá por getProductBySlug(id)
-        const data = await getProductById(pid);
+        const data = await getProductById(pid); // si usás slug: getProductBySlug(id)
 
         if (!alive) return;
-        setProduct(data); // ya viene mapeado: images = string[]
+
+        // preselección: variante por defecto o la primera
+        const variants = data.variants || [];
+        const pre = variants.find(v => v.isDefault) || variants[0] || null;
+
+        setProduct(data);
+        setColor(pre?.color ?? null);
+        setSize(pre?.size ?? null);
       } catch (e) {
         if (!alive) return;
         if (e?.response?.status === 404) setNotFound(true);
@@ -39,9 +49,45 @@ export default function ProductDetail() {
         if (alive) setLoading(false);
       }
     })();
-
     return () => { alive = false; };
   }, [pid]);
+
+  const variants = product?.variants ?? [];
+
+  // opciones disponibles
+  const colorOptions = useMemo(() => {
+    const set = new Set(variants.map(v => v.color).filter(Boolean));
+    return Array.from(set);
+  }, [variants]);
+
+  const sizeOptions = useMemo(() => {
+    // tamaños filtrados por color seleccionado (si hay color)
+    const list = variants
+      .filter(v => !color || v.color === color)
+      .map(v => v.size)
+      .filter(Boolean);
+    return Array.from(new Set(list));
+  }, [variants, color]);
+
+  // variante seleccionada (según lo elegido)
+  const selectedVariant = useMemo(() => {
+    if (!variants.length) return null;
+
+    // casos: solo color, solo size, ambos o ninguno
+    return (
+      variants.find(v =>
+        (color == null || v.color === color) &&
+        (size == null || v.size === size)
+      ) || null
+    );
+  }, [variants, color, size]);
+
+  // galería y precio a mostrar
+  const gallery = selectedVariant?.images?.length
+    ? selectedVariant.images
+    : (product?.images ?? []);
+
+  const displayPrice = selectedVariant?.price ?? product?.price ?? 0;
 
   if (notFound) return <p>Producto no encontrado.</p>;
 
@@ -61,7 +107,7 @@ export default function ProductDetail() {
         {loading ? (
           <div className="h-72 w-full rounded-xl bg-neutral-200 animate-pulse" />
         ) : product ? (
-          <ImageSlider images={product.images ?? []} alt={product.name} />
+          <ImageSlider images={gallery} alt={product.name} />
         ) : null}
       </div>
 
@@ -75,8 +121,53 @@ export default function ProductDetail() {
         </div>
 
         <div className="text-2xl mb-4">
-          {loading ? "—" : formatPrice(product?.price ?? 0)}
+          {loading ? "—" : formatPrice(displayPrice)}
         </div>
+
+        {/* Selectores de variante (se ocultan si no hay variantes reales) */}
+        {!loading && variants.length > 1 && (
+          <div className="mb-4 space-y-3">
+            {colorOptions.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-neutral-600">Color:</span>
+                {colorOptions.map(c => {
+                  const active = c === color;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => { setColor(c); /* reset size si cambia color */ setSize(null); }}
+                      className={`px-3 py-1 rounded-full border text-sm transition
+                        ${active ? "bg-black text-white border-black" : "bg-white hover:bg-neutral-100 border-neutral-300"}`}
+                    >
+                      {c}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {sizeOptions.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-neutral-600">Tamaño:</span>
+                {sizeOptions.map(s => {
+                  const active = s === size;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setSize(s)}
+                      className={`px-3 py-1 rounded-full border text-sm transition
+                        ${active ? "bg-black text-white border-black" : "bg-white hover:bg-neutral-100 border-neutral-300"}`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="w-full flex items-center justify-between bg-neutral-200 min-h-24 shadow-xl rounded-2xl pr-4 pb-3">
           <div className="mt-3 ml-3">
@@ -93,10 +184,23 @@ export default function ProductDetail() {
 
           {!loading && product && (
             <div className="flex flex-col justify-center items-end">
-              <label htmlFor="AddButton" className="text-xs">
-                Agregar al carrito
-              </label>
-              <AddButton product={product} />
+              <label htmlFor="AddButton" className="text-xs">Agregar al carrito</label>
+              {/* Preparamos el objeto para el carrito con variantId y precio/galería efectivos */}
+              <AddButton
+                product={{
+                  ...product,
+                  price: displayPrice,
+                  images: gallery,
+                  variantId: selectedVariant?.id ?? null,
+                  sku: selectedVariant?.sku ?? null,
+                  color: selectedVariant?.color ?? null,
+                  size: selectedVariant?.size ?? null,
+                  displayName:
+                    selectedVariant?.color || selectedVariant?.size
+                      ? `${product.name} ${selectedVariant?.color ?? ""} ${selectedVariant?.size ?? ""}`.trim()
+                      : product.name,
+                }}
+              />
             </div>
           )}
         </div>

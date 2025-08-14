@@ -100,7 +100,7 @@ export default function CategoryPage() {
                 />
                 <div className="absolute flex w-full justify-between bg-neutral-100/50 bottom-0 left-0 right-0 p-3 drop-shadow rounded-t-3xl rounded-b-lg">
                   <div>
-                    <div className="text-sm font-medium truncate">{p.name}</div>
+                    <div className="text-lg font-medium truncate">{p.name}</div>
                     <div className="text-sm">{formatPrice(p.price)}</div>
                   </div>
                   <AddButton product={p} />
