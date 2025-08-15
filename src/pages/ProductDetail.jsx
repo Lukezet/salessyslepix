@@ -174,7 +174,7 @@ export default function ProductDetail() {
             <p className="mb-2 text-neutral-700">
               Marca:{" "}
               <span className="text-xl font-semibold">
-                {loading ? "—" : product?.nameBrand}
+                {loading ? "—" : product?.brandName}
               </span>
             </p>
             <p className="mb-4 text-neutral-700">

@@ -77,16 +77,17 @@ export default function CartPage() {
               </div>
 
               {/* Controles */}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-center gap-2">
                 <button
                   className="w-8 h-8 btn-custom"
-                  onClick={() => setQty(i.lineId, Math.max(1, i.quantity - 1))}
-                  aria-label="Disminuir cantidad"
+                  onClick={() => setQty(i.lineId, i.quantity + 1)}
+                  aria-label="Aumentar cantidad"
                 >
-                  -
+                  +
                 </button>
+               
                 <input
-                  className="w-14 text-center border-2 border-neutral-800 rounded"
+                  className="w-10 text-center border-2 border-neutral-800 rounded"
                   inputMode="numeric"
                   pattern="[0-9]*"
                   value={i.quantity}
@@ -95,12 +96,12 @@ export default function CartPage() {
                     setQty(i.lineId, Number.isFinite(v) && v > 0 ? v : 1);
                   }}
                 />
-                <button
+                 <button
                   className="w-8 h-8 btn-custom"
-                  onClick={() => setQty(i.lineId, i.quantity + 1)}
-                  aria-label="Aumentar cantidad"
+                  onClick={() => setQty(i.lineId, Math.max(1, i.quantity - 1))}
+                  aria-label="Disminuir cantidad"
                 >
-                  +
+                  -
                 </button>
                 <button
                   className="text-sm underline cursor-pointer"
