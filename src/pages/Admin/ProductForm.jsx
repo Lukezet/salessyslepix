@@ -1,4 +1,6 @@
+// src/admin/ProductForm.jsx
 import { useEffect, useMemo, useState } from "react";
+import FilePicker from "../../components/FilePicker";
 import {
   listBrands,
   createBrand,
@@ -7,22 +9,34 @@ import {
   uploadProductImage,
   createProduct,
   updateProduct,
-  getProductAdminById, // si lo tenés en tu services; si no, pasá "initial" por props
+  getProductAdminById,
+  listColors,     // 👈 NUEVO
+  listSizes,      // 👈 NUEVO
 } from "../../services/catalog";
 
 function slugify(str = "") {
   return String(str)
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // quita acentos
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
 
+// SKU = nombre-color-tamaño (todo slugificado/minúsculas)
+function buildVariantSku(productName, color, size) {
+  const parts = [
+    productName?.trim() || "",
+    color?.code || color?.name || "",
+    size?.code || size?.name || "",
+  ].filter(Boolean);
+  return slugify(parts.join("-"));
+}
+
 export default function ProductForm({
-  initial = null,   // opcional: producto para editar (Admin shape: images [{url,sort}], variants...)
-  productId = null, // alternativa: id para fetch
-  onSaved,          // callback(product) cuando guarda OK
+  initial = null,
+  productId = null,
+  onSaved,
 }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -30,6 +44,8 @@ export default function ProductForm({
 
   const [brands, setBrands] = useState([]);
   const [cats, setCats] = useState([]);
+  const [colors, setColors] = useState([]); // 👈 NUEVO
+  const [sizes, setSizes] = useState([]);   // 👈 NUEVO
 
   const [form, setForm] = useState(() => ({
     name: "",
@@ -38,11 +54,13 @@ export default function ProductForm({
     price: 0,
     brandId: null,
     categoryId: null,
-    images: [],      // [{ url, sort }]
-    variants: [],    // [{ color,size,sku,priceOverride,isDefault, images:[{url,sort}] }]
+    // 🚫 Quitamos imágenes de producto (para evitar confusión)
+    images: [],
+    // Ahora variantes usan colorId/sizeId (IDs globales)
+    variants: [], // [{ colorId, sizeId, sku, priceOverride, isDefault, images:[{url,sort}] }]
   }));
 
-  // Cargar datos base (marcas, categorías) y producto cuando corresponde
+  // Cargar bases + producto
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -50,10 +68,17 @@ export default function ProductForm({
         setLoading(true);
         setErr(null);
 
-        const [b, c] = await Promise.all([listBrands(), getCategories()]);
+        const [b, c, col, sz] = await Promise.all([
+          listBrands(),
+          getCategories(),
+          listColors(),   // 👈 NUEVO
+          listSizes(),    // 👈 NUEVO
+        ]);
         if (!alive) return;
         setBrands(b);
         setCats(c);
+        setColors(col);
+        setSizes(sz);
 
         if (initial) {
           setForm(fromApiToForm(initial));
@@ -62,7 +87,6 @@ export default function ProductForm({
           if (!alive) return;
           setForm(fromApiToForm(p));
         } else {
-          // crear: valores por defecto
           setForm(f => ({ ...f, price: 0 }));
         }
       } catch (e) {
@@ -76,24 +100,23 @@ export default function ProductForm({
     return () => { alive = false; };
   }, [productId, initial]);
 
-  // Helpers de mapeo
+  // Mapear API → Form (admin)
   function fromApiToForm(p) {
     return {
       name: p.name ?? "",
-      slug: p.slug ?? "",
+      slug: p.slug ?? "", // se re-generará si está vacío
       description: p.description ?? "",
       price: Number(p.price ?? 0),
       brandId: p.brandId ?? null,
       categoryId: p.categoryId ?? null,
-      images: Array.isArray(p.images) ? p.images.map((i, idx) => ({
-        url: i.url ?? i, // por si viene string (raro en admin)
-        sort: typeof i.sort === "number" ? i.sort : idx,
-      })) : [],
+      images: [], // 🚫 ya no usamos imágenes de producto
       variants: Array.isArray(p.variants) ? p.variants.map(v => ({
-        color: v.color ?? "",
-        size: v.size ?? "",
+        colorId: typeof v.colorId === "number" ? v.colorId : null,
+        sizeId:  typeof v.sizeId  === "number" ? v.sizeId  : null,
+        // SKU se recalcula abajo, pero lo guardamos por si viene:
         sku: v.sku ?? "",
-        priceOverride: typeof v.priceOverride === "number" ? v.priceOverride : (v.price ?? null) ?? null,
+        // En admin solemos editar el override, si no viene explícito, queda null:
+        priceOverride: v.priceOverride ?? null,
         isDefault: !!v.isDefault,
         images: Array.isArray(v.images) ? v.images.map((vi, j) => ({
           url: vi.url ?? vi,
@@ -103,70 +126,32 @@ export default function ProductForm({
     };
   }
 
-  // ====== Handlers de campos básicos ======
-  const setField = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
-
+  // Recalcular slug de producto cuando pierde foco del nombre (auto, oculto en UI)
   const onNameBlur = () => {
     if (!form.slug?.trim()) setField("slug", slugify(form.name));
   };
 
-  // ====== Imágenes de Producto ======
-  const addProductFiles = async (files) => {
-    for (const f of files) {
-      const { url } = await uploadProductImage(f);
-      setForm(prev => ({
-        ...prev,
-        images: [...prev.images, { url, sort: prev.images.length }],
-      }));
-    }
+  // Recalcular SKU de TODAS las variantes (según nombre/color/size)
+  const recomputeAllVariantSkus = (nextForm) => {
+    const colorMap = new Map(colors.map(c => [c.id, c]));
+    const sizeMap  = new Map(sizes.map(s => [s.id, s]));
+    const name = nextForm.name ?? "";
+    const nextVariants = (nextForm.variants ?? []).map(v => {
+      const c = v.colorId ? colorMap.get(v.colorId) : null;
+      const s = v.sizeId  ? sizeMap.get(v.sizeId)  : null;
+      return { ...v, sku: buildVariantSku(name, c, s) };
+    });
+    return { ...nextForm, variants: nextVariants };
   };
 
-  const removeProductImage = (idx) => {
-    setForm(prev => {
-      const next = prev.images.filter((_, i) => i !== idx);
-      // normalizar sort
-      return { ...prev, images: next.map((x, i) => ({ ...x, sort: i })) };
-    });
-  };
-
-  const moveProductImage = (idx, dir) => {
-    setForm(prev => {
-      const arr = [...prev.images];
-      const j = idx + dir;
-      if (j < 0 || j >= arr.length) return prev;
-      [arr[idx], arr[j]] = [arr[j], arr[idx]];
-      return { ...prev, images: arr.map((x, i) => ({ ...x, sort: i })) };
-    });
-  };
-
-  // ====== Variantes ======
-  const addVariant = () => {
-    setForm(prev => {
-      const makeDefault = prev.variants.length === 0;
-      return {
-        ...prev,
-        variants: [
-          ...prev.variants,
-          { color: "", size: "", sku: "", priceOverride: null, isDefault: makeDefault, images: [] }
-        ]
-      };
-    });
-  };
-
-  const removeVariant = (idx) => {
-    setForm(prev => {
-      const arr = prev.variants.filter((_, i) => i !== idx);
-      // si quedó sin default, marcar el primero
-      if (arr.length > 0 && !arr.some(v => v.isDefault)) arr[0].isDefault = true;
-      return { ...prev, variants: arr };
-    });
-  };
+  // ====== State helpers ======
+  const setField = (k, v) => setForm(prev => recomputeAllVariantSkus({ ...prev, [k]: v }));
 
   const setVariantField = (idx, key, value) => {
     setForm(prev => {
       const arr = [...prev.variants];
       arr[idx] = { ...arr[idx], [key]: value };
-      return { ...prev, variants: arr };
+      return recomputeAllVariantSkus({ ...prev, variants: arr });
     });
   };
 
@@ -177,7 +162,29 @@ export default function ProductForm({
     });
   };
 
-  // Imágenes de Variante
+  const addVariant = () => {
+    setForm(prev => {
+      const makeDefault = prev.variants.length === 0;
+      const next = {
+        ...prev,
+        variants: [
+          ...prev.variants,
+          { colorId: null, sizeId: null, sku: "", priceOverride: null, isDefault: makeDefault, images: [] }
+        ]
+      };
+      return recomputeAllVariantSkus(next);
+    });
+  };
+
+  const removeVariant = (idx) => {
+    setForm(prev => {
+      const arr = prev.variants.filter((_, i) => i !== idx);
+      if (arr.length > 0 && !arr.some(v => v.isDefault)) arr[0].isDefault = true;
+      return { ...prev, variants: arr };
+    });
+  };
+
+  // ====== Imágenes de Variante ======
   const addVariantFiles = async (idx, files) => {
     const uploaded = [];
     for (const f of files) {
@@ -221,7 +228,7 @@ export default function ProductForm({
     });
   };
 
-  // ====== Crear “rápido” marca/categoría ======
+  // Crear rápido
   const quickAddBrand = async () => {
     const name = prompt("Nombre de marca");
     if (!name) return;
@@ -240,44 +247,61 @@ export default function ProductForm({
     setField("categoryId", c.id);
   };
 
-  // ====== Guardar ======
-  const payload = useMemo(() => ({
-    name: form.name,
-    slug: form.slug,
-    description: form.description,
-    price: Number(form.price) || 0,
-    brandId: form.brandId,
-    categoryId: form.categoryId,
-    images: (form.images ?? []).map((i, idx) => ({
-      url: i.url,
-      sort: typeof i.sort === "number" ? i.sort : idx
-    })),
-    variants: (form.variants ?? []).map(v => ({
-      color: v.color || null,
-      size: v.size || null,
-      sku: v.sku || "",
-      priceOverride: v.priceOverride === "" || v.priceOverride === null || typeof v.priceOverride === "undefined"
-        ? null : Number(v.priceOverride),
-      isDefault: !!v.isDefault,
-      images: (v.images ?? []).map((vi, j) => ({
-        url: vi.url,
-        sort: typeof vi.sort === "number" ? vi.sort : j
-      }))
-    }))
-  }), [form]);
+  // ====== Payload ======
+  const payload = useMemo(() => {
+    // mapa para construir SKU coherente en caso de cambios
+    const colorMap = new Map(colors.map(c => [c.id, c]));
+    const sizeMap  = new Map(sizes.map(s => [s.id, s]));
 
+    return {
+      name: form.name,
+      // slug de producto oculto (solo nombre)
+      slug: form.slug?.trim() ? form.slug : slugify(form.name),
+      description: form.description,
+      price: Number(form.price) || 0,
+      brandId: form.brandId,
+      categoryId: form.categoryId,
+
+      // 🚫 No enviamos imágenes de producto (lo dejamos vacío)
+      images: [],
+
+      // variantes con IDs y SKU auto
+      variants: (form.variants ?? []).map(v => {
+        const c = v.colorId ? colorMap.get(v.colorId) : null;
+        const s = v.sizeId  ? sizeMap.get(v.sizeId)  : null;
+        const autoSku = buildVariantSku(form.name, c, s);
+        return {
+          colorId: v.colorId ?? null,
+          sizeId:  v.sizeId  ?? null,
+          sku: autoSku, // 👈 SKU auto
+          priceOverride:
+            v.priceOverride === "" || v.priceOverride === null || typeof v.priceOverride === "undefined"
+              ? null : Number(v.priceOverride),
+          isDefault: !!v.isDefault,
+          images: (v.images ?? []).map((vi, j) => ({
+            url: vi.url,
+            sort: typeof vi.sort === "number" ? vi.sort : j
+          }))
+        };
+      })
+    };
+  }, [form, colors, sizes]);
+
+  // ====== Validación ======
   const validate = () => {
     if (!payload.name?.trim()) return "Nombre requerido";
     if (!payload.slug?.trim()) return "Slug requerido";
     if (!payload.brandId) return "Marca requerida";
     if (!payload.categoryId) return "Categoría requerida";
+
     if (payload.variants?.length > 0) {
       const defaults = payload.variants.filter(v => v.isDefault).length;
       if (defaults !== 1) return "Debés marcar exactamente una variante como default";
-      // check duplicados color/size
+
+      // duplicados por (colorId,sizeId)
       const seen = new Set();
       for (const v of payload.variants) {
-        const key = `${v.color ?? ""}__${v.size ?? ""}`;
+        const key = `${v.colorId ?? ""}__${v.sizeId ?? ""}`;
         if (seen.has(key)) return "Hay variantes repetidas (color/tamaño)";
         seen.add(key);
       }
@@ -291,6 +315,7 @@ export default function ProductForm({
     try {
       setSaving(true);
       setErr(null);
+      console.log("PAYLOAD QUE SE ENVÍA >>>", JSON.stringify(payload, null, 2));
       const res = initial || productId
         ? await updateProduct(initial?.id ?? productId, payload)
         : await createProduct(payload);
@@ -303,8 +328,20 @@ export default function ProductForm({
     }
   };
 
-  // ====== UI ======
   if (loading) return <div className="p-4">Cargando…</div>;
+
+  // Helpers UI
+  const findColor = (id) => colors.find(c => c.id === id);
+  const colorChip = (id) => {
+    const c = findColor(id);
+    const hex = c?.hex || "#000000";
+    return (
+      <span className="inline-flex items-center gap-2 text-xs">
+        <span className="inline-block w-4 h-4 rounded border" style={{ backgroundColor: hex }} />
+        {c ? `${c.name} (${c.code})` : "—"}
+      </span>
+    );
+  };
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
@@ -313,9 +350,7 @@ export default function ProductForm({
       </h1>
 
       {err && (
-        <div className="p-3 rounded bg-red-100 text-red-800 text-sm">
-          {String(err)}
-        </div>
+        <div className="p-3 rounded bg-red-100 text-red-800 text-sm">{String(err)}</div>
       )}
 
       {/* Campos básicos */}
@@ -330,15 +365,9 @@ export default function ProductForm({
             placeholder="JBL Charge 6"
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium">Slug</label>
-          <input
-            className="w-full border rounded px-3 py-2"
-            value={form.slug}
-            onChange={e => setField("slug", e.target.value)}
-            placeholder="jbl-charge-6"
-          />
-        </div>
+        {/* 🚫 Slug oculto al usuario: se genera solo
+        <div>... (eliminado) ...</div>
+        */}
         <div>
           <label className="block text-sm font-medium">Precio base</label>
           <input
@@ -389,40 +418,7 @@ export default function ProductForm({
         </div>
       </div>
 
-      {/* Imágenes de producto */}
-      <div>
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium">Imágen del producto</label>
-          <input
-            type="file"
-            multiple
-            onChange={async (e) => {
-              const files = Array.from(e.target.files ?? []);
-              if (files.length) await addProductFiles(files);
-              e.target.value = "";
-            }}
-          />
-        </div>
-        {form.images.length === 0 ? (
-          <div className="mt-2 text-sm text-neutral-600">Sin imágenes.</div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-            {form.images.map((img, i) => (
-              <div key={i} className="relative border rounded overflow-hidden group">
-                <img src={img.url} alt="" className="w-full h-32 object-cover" />
-                <div className="absolute inset-x-0 bottom-0 bg-black/50 text-white text-xs px-2 py-1 flex items-center justify-between">
-                  <span>#{i + 1}</span>
-                  <div className="flex gap-1">
-                    <button onClick={() => moveProductImage(i, -1)} className="px-2 py-0.5 bg-white/20 rounded hover:bg-white/40">←</button>
-                    <button onClick={() => moveProductImage(i, +1)} className="px-2 py-0.5 bg-white/20 rounded hover:bg-white/40">→</button>
-                    <button onClick={() => removeProductImage(i)} className="px-2 py-0.5 bg-red-500/80 rounded hover:bg-red-500">✕</button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* 🚫 Imágenes de producto: eliminadas. Ahora solo por variante. */}
 
       {/* Variantes */}
       <div>
@@ -433,106 +429,126 @@ export default function ProductForm({
 
         {form.variants.length === 0 ? (
           <div className="mt-2 text-sm text-neutral-600">
-            Sin variantes. (Podés usar el precio base del producto)
+            Sin variantes. (Se usará solo el precio base del producto)
           </div>
         ) : (
           <div className="mt-3 space-y-3">
             {form.variants.map((v, idx) => (
-              <div key={idx} className="border rounded p-3">
-                <div className="grid md:grid-cols-5 gap-3">
-                  <div>
-                    <label className="block text-sm">Color</label>
-                    <input
-                      className="w-full border rounded px-2 py-1"
-                      value={v.color ?? ""}
-                      onChange={e => setVariantField(idx, "color", e.target.value)}
-                      placeholder="blue / black"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm">Tamaño</label>
-                    <input
-                      className="w-full border rounded px-2 py-1"
-                      value={v.size ?? ""}
-                      onChange={e => setVariantField(idx, "size", e.target.value)}
-                      placeholder="64GB / XL"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm">SKU</label>
-                    <input
-                      className="w-full border rounded px-2 py-1"
-                      value={v.sku ?? ""}
-                      onChange={e => setVariantField(idx, "sku", e.target.value)}
-                      placeholder="SKU-123"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm">Precio (override)</label>
-                    <input
-                      type="number"
-                      className="w-full border rounded px-2 py-1"
-                      value={v.priceOverride ?? ""}
-                      onChange={e => setVariantField(idx, "priceOverride", e.target.value === "" ? "" : Number(e.target.value))}
-                      placeholder="(opcional)"
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <label className="inline-flex items-center gap-2">
+                <div key={idx} className="border rounded p-3">
+                  <div className="grid md:grid-cols-5 gap-3">
+                    {/* Color select con chip */}
+                    <div className="col-span-2">
+                      <label className="block text-sm">Color</label>
+                      <div className="flex items-center gap-2">
+                        <select
+                          className="flex-1 border rounded px-2 py-1"
+                          value={v.colorId ?? ""}
+                          onChange={e => setVariantField(idx, "colorId", e.target.value ? Number(e.target.value) : null)}
+                        >
+                          <option value="">— Sin color —</option>
+                          {colors.map(c => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} ({c.code})
+                            </option>
+                          ))}
+                        </select>
+                        <div className="min-w-16">
+                          {v.colorId ? colorChip(v.colorId) : <span className="text-xs text-neutral-500">—</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Size select */}
+                    <div>
+                      <label className="block text-sm">Tamaño</label>
+                      <select
+                        className="w-full border rounded px-2 py-1"
+                        value={v.sizeId ?? ""}
+                        onChange={e => setVariantField(idx, "sizeId", e.target.value ? Number(e.target.value) : null)}
+                      >
+                        <option value="">— Sin tamaño —</option>
+                        {sizes.map(s => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}{s.group ? ` • ${s.group}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Precio override */}
+                    <div>
+                      <label className="block text-sm">Precio (override)</label>
                       <input
-                        type="checkbox"
-                        checked={!!v.isDefault}
-                        onChange={() => setVariantDefault(idx)}
+                        type="number"
+                        className="w-full border rounded px-2 py-1"
+                        value={v.priceOverride ?? ""}
+                        onChange={e => setVariantField(idx, "priceOverride", e.target.value === "" ? "" : Number(e.target.value))}
+                        placeholder="(opcional)"
                       />
-                      Default
-                    </label>
-                    <button
-                      type="button"
-                      className="ml-auto text-sm underline text-red-600"
-                      onClick={() => removeVariant(idx)}
-                    >
-                      Quitar
-                    </button>
-                  </div>
-                </div>
+                    </div>
 
-                {/* imágenes de variante */}
-                <div className="mt-3">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium">Imágenes de esta variante</div>
-                    <input
-                      type="file"
-                      multiple
-                      onChange={async (e) => {
-                        const files = Array.from(e.target.files ?? []);
-                        if (files.length) await addVariantFiles(idx, files);
-                        e.target.value = "";
-                      }}
-                    />
+                    {/* Default + quitar */}
+                    <div className="flex items-end gap-2">
+                      <label className="inline-flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={!!v.isDefault}
+                          onChange={() => setVariantDefault(idx)}
+                        />
+                        Default
+                      </label>
+                      <button
+                        type="button"
+                        className="ml-auto text-sm underline text-red-600"
+                        onClick={() => removeVariant(idx)}
+                      >
+                        Quitar
+                      </button>
+                    </div>
                   </div>
 
-                  {(v.images?.length ?? 0) === 0 ? (
-                    <div className="mt-2 text-sm text-neutral-600">Sin imágenes.</div>
-                  ) : (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {v.images.map((img, j) => (
-                        <div key={j} className="relative">
-                          <img src={img.url} alt="" className="w-24 h-20 object-cover rounded border" />
-                          <div className="absolute inset-x-0 bottom-0 bg-black/50 text-white text-[11px] px-1 py-0.5 flex items-center justify-between rounded-b">
-                            <span>#{j + 1}</span>
-                            <div className="flex gap-1">
-                              <button onClick={() => moveVariantImage(idx, j, -1)} className="px-1 rounded bg-white/20">←</button>
-                              <button onClick={() => moveVariantImage(idx, j, +1)} className="px-1 rounded bg-white/20">→</button>
-                              <button onClick={() => removeVariantImage(idx, j)} className="px-1 rounded bg-red-500/80">✕</button>
+                  {/* SKU (auto, oculto). Si querés verlo en debug, mostralo aquí */}
+                  <div className="mt-1 text-[11px] text-neutral-500">
+                    SKU auto: <code>{v.sku}</code>
+                  </div>
+
+                  {/* Imágenes de variante */}
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-medium">Imágenes de esta variante</div>
+                      <div className="w-64">
+                        <FilePicker
+                          label="Seleccionar imágenes"
+                          onFiles={async (files) => { await addVariantFiles(idx, files); }}
+                          multiple
+                          accept="image/*"
+                          compact
+                        />
+                      </div>
+                    </div>
+
+                    {(v.images?.length ?? 0) === 0 ? (
+                      <div className="mt-2 text-sm text-neutral-600">Sin imágenes.</div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {v.images.map((img, j) => (
+                          <div key={j} className="relative">
+                            <img src={img.url} alt="" className="w-24 h-20 object-cover rounded border" />
+                            <div className="absolute inset-x-0 bottom-0 bg-black/50 text-white text-[11px] px-1 py-0.5 flex items-center justify-between rounded-b">
+                              <span>#{j + 1}</span>
+                              <div className="flex gap-1">
+                                <button onClick={() => moveVariantImage(idx, j, -1)} className="px-1 rounded bg-white/20">←</button>
+                                <button onClick={() => moveVariantImage(idx, j, +1)} className="px-1 rounded bg-white/20">→</button>
+                                <button onClick={() => removeVariantImage(idx, j)} className="px-1 rounded bg-red-500/80">✕</button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         )}
       </div>

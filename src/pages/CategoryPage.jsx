@@ -87,7 +87,9 @@ export default function CategoryPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {items.map((p) => {
-            const bg = p.images?.[0] ? `url(${p.images[0]})` : "none";
+        const firstVariantImage = p.variants?.[0]?.images?.[0];
+          const bg = firstVariantImage ? `url(${firstVariantImage})` : "none";
+
             return (
               <Link
                 key={p.id}

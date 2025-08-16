@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getProductById /* o getProductBySlug */ } from "../services/catalog";
+import { getProductById } from "../services/catalog";
 import { formatPrice } from "../utils/format";
 import ImageSlider from "../components/ImageSlider";
 import AddButton from "../components/Addbutton";
@@ -15,9 +15,9 @@ export default function ProductDetail() {
   const [err, setErr] = useState(null);
   const [notFound, setNotFound] = useState(false);
 
-  // selección de variantes
-  const [color, setColor] = useState(null);
-  const [size, setSize] = useState(null);
+  // selección de variantes por IDs globales
+  const [colorId, setColorId] = useState(null);
+  const [sizeId, setSizeId] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -27,17 +27,15 @@ export default function ProductDetail() {
         setErr(null);
         setNotFound(false);
 
-        const data = await getProductById(pid); // si usás slug: getProductBySlug(id)
-
+        const data = await getProductById(pid);
         if (!alive) return;
 
-        // preselección: variante por defecto o la primera
-        const variants = data.variants || [];
-        const pre = variants.find(v => v.isDefault) || variants[0] || null;
+        const vs = Array.isArray(data.variants) ? data.variants : [];
+        const pre = vs.find(v => v.isDefault) || vs[0] || null;
 
         setProduct(data);
-        setColor(pre?.color ?? null);
-        setSize(pre?.size ?? null);
+        setColorId(pre?.colorId ?? null);
+        setSizeId(pre?.sizeId ?? null);
       } catch (e) {
         if (!alive) return;
         if (e?.response?.status === 404) setNotFound(true);
@@ -54,39 +52,66 @@ export default function ProductDetail() {
 
   const variants = product?.variants ?? [];
 
-  // opciones disponibles
+  // Opciones de color únicas (por colorId)
   const colorOptions = useMemo(() => {
-    const set = new Set(variants.map(v => v.color).filter(Boolean));
-    return Array.from(set);
+    const map = new Map();
+    for (const v of variants) {
+      if (v.colorId && !map.has(v.colorId)) {
+        map.set(v.colorId, {
+          id: v.colorId,
+          name: v.colorName,
+          code: v.colorCode,
+          hex: v.colorHex,
+          tailwind: v.colorTailwind
+        });
+      }
+    }
+    return Array.from(map.values());
   }, [variants]);
 
+  // Opciones de tamaño según color elegido (si hay)
   const sizeOptions = useMemo(() => {
-    // tamaños filtrados por color seleccionado (si hay color)
     const list = variants
-      .filter(v => !color || v.color === color)
-      .map(v => v.size)
-      .filter(Boolean);
-    return Array.from(new Set(list));
-  }, [variants, color]);
+      .filter(v => !colorId || v.colorId === colorId)
+      .map(v => ({
+        id: v.sizeId,
+        name: v.sizeName,
+        code: v.sizeCode,
+        group: v.sizeGroup
+      }))
+      .filter(s => s.id != null);
+    // unique por id
+    const map = new Map();
+    for (const s of list) if (!map.has(s.id)) map.set(s.id, s);
+    return Array.from(map.values());
+  }, [variants, colorId]);
 
-  // variante seleccionada (según lo elegido)
+  // variante seleccionada
   const selectedVariant = useMemo(() => {
     if (!variants.length) return null;
 
-    // casos: solo color, solo size, ambos o ninguno
-    return (
-      variants.find(v =>
-        (color == null || v.color === color) &&
-        (size == null || v.size === size)
-      ) || null
+    // 1) match color+size exacto
+    let sel = variants.find(v =>
+      (colorId == null || v.colorId === colorId) &&
+      (sizeId == null || v.sizeId === sizeId)
     );
-  }, [variants, color, size]);
+    // 2) fallback solo color
+    if (!sel && colorId != null) sel = variants.find(v => v.colorId === colorId);
+    // 3) fallback primera
+    return sel || variants[0] || null;
+  }, [variants, colorId, sizeId]);
 
-  // galería y precio a mostrar
-  const gallery = selectedVariant?.images?.length
+  // Galería (strings) desde la variante
+const gallery = useMemo(() => {
+  const imgs = (selectedVariant?.images?.length
     ? selectedVariant.images
-    : (product?.images ?? []);
+    : (product?.images ?? []));
 
+  // normaliza a string[]
+  return imgs.map(i => (typeof i === "string" ? i : i?.url)).filter(Boolean);
+}, [selectedVariant, product]);
+
+  // Precio mostrado (viene calculado del back: v.price = override ?? product.price)
   const displayPrice = selectedVariant?.price ?? product?.price ?? 0;
 
   if (notFound) return <p>Producto no encontrado.</p>;
@@ -107,76 +132,93 @@ export default function ProductDetail() {
         {loading ? (
           <div className="h-72 w-full rounded-xl bg-neutral-200 animate-pulse" />
         ) : product ? (
-          <ImageSlider images={gallery} alt={product.name} />
+          <ImageSlider key={selectedVariant?.id ?? "no-variant"} images={gallery} alt={product.name} />
         ) : null}
       </div>
 
       {/* Columna info */}
       <div className="mx-4">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-2 flex items-center justify-between">
           <h1 className="text-2xl font-semibold">
             {loading ? "Cargando..." : product?.name ?? "Producto"}
           </h1>
           {err && <span className="text-sm text-red-600">{err}</span>}
         </div>
 
+        {/* Precio */}
         <div className="text-2xl mb-4">
           {loading ? "—" : formatPrice(displayPrice)}
         </div>
 
-        {/* Selectores de variante (se ocultan si no hay variantes reales) */}
-        {!loading && variants.length > 1 && (
+        {/* Selectores de variantes */}
+        {!loading && variants.length > 0 && (
           <div className="mb-4 space-y-3">
+            {/* Colores */}
             {colorOptions.length > 0 && (
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
                 <span className="text-sm text-neutral-600">Color:</span>
-                {colorOptions.map(c => {
-                  const active = c === color;
-                  return (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => { setColor(c); /* reset size si cambia color */ setSize(null); }}
-                      className={`px-3 py-1 rounded-full border text-sm transition
-                        ${active ? "bg-black text-white border-black" : "bg-white hover:bg-neutral-100 border-neutral-300"}`}
-                    >
-                      {c}
-                    </button>
-                  );
-                })}
+                <div className="flex gap-2 flex-wrap">
+                  {colorOptions.map(opt => {
+                    const active = opt.id === colorId;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => { setColorId(opt.id); setSizeId(null); }}
+                        className={`flex items-center gap-2 px-3 py-1 rounded-full border text-sm transition
+                          ${active ? "bg-black text-white border-black" : "bg-white hover:bg-neutral-100 border-neutral-300"}`}
+                        aria-label={opt.name}
+                        title={opt.name}
+                      >
+                        <span
+                          className="inline-block w-4 h-4 rounded border"
+                          style={{ backgroundColor: opt.hex || "#000" }}
+                        />
+                        <span>{opt.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
+            {/* Tamaños (si existen) */}
             {sizeOptions.length > 0 && (
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
                 <span className="text-sm text-neutral-600">Tamaño:</span>
-                {sizeOptions.map(s => {
-                  const active = s === size;
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setSize(s)}
-                      className={`px-3 py-1 rounded-full border text-sm transition
-                        ${active ? "bg-black text-white border-black" : "bg-white hover:bg-neutral-100 border-neutral-300"}`}
-                    >
-                      {s}
-                    </button>
-                  );
-                })}
+                <div className="flex gap-2 flex-wrap">
+                  {sizeOptions.map(opt => {
+                    const label = opt.group ? `${opt.name} • ${opt.group}` : opt.name;
+                    const active = opt.id === sizeId;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setSizeId(opt.id)}
+                        className={`px-3 py-1 rounded-full border text-sm transition
+                          ${active ? "bg-black text-white border-black" : "bg-white hover:bg-neutral-100 border-neutral-300"}`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
         )}
 
+        {/* Marca + descripción + agregar */}
         <div className="w-full flex items-center justify-between bg-neutral-200 min-h-24 shadow-xl rounded-2xl pr-4 pb-3">
           <div className="mt-3 ml-3">
-            <p className="mb-2 text-neutral-700">
+            <p className="mb-1 text-neutral-700">
               Marca:{" "}
-              <span className="text-xl font-semibold">
-                {loading ? "—" : product?.brandName}
-              </span>
+              <span className="text-xl font-semibold">{loading ? "—" : product?.brandName}</span>
             </p>
+            {/* SKU visible chiquito si hay variante */}
+            {selectedVariant?.sku && (
+              <p className="text-[11px] text-neutral-600 mb-2">SKU: <code>{selectedVariant.sku}</code></p>
+            )}
             <p className="mb-4 text-neutral-700">
               {loading ? "Cargando descripción..." : product?.description}
             </p>
@@ -185,19 +227,29 @@ export default function ProductDetail() {
           {!loading && product && (
             <div className="flex flex-col justify-center items-end">
               <label htmlFor="AddButton" className="text-xs">Agregar al carrito</label>
-              {/* Preparamos el objeto para el carrito con variantId y precio/galería efectivos */}
               <AddButton
                 product={{
-                  ...product,
+                  id: product.id,
+                  name: product.name,
+                  brandName: product.brandName,
+                  description: product.description,
+                  // Lo que realmente se usa al agregar:
                   price: displayPrice,
-                  images: gallery,
+                  images: gallery, // strings para tu Card/Cart
+                  // Datos de la variante seleccionada:
                   variantId: selectedVariant?.id ?? null,
                   sku: selectedVariant?.sku ?? null,
-                  color: selectedVariant?.color ?? null,
-                  size: selectedVariant?.size ?? null,
+                  colorId: selectedVariant?.colorId ?? null,
+                  colorName: selectedVariant?.colorName ?? null,
+                  colorHex: selectedVariant?.colorHex ?? null,
+                  sizeId: selectedVariant?.sizeId ?? null,
+                  sizeName: selectedVariant?.sizeName ?? null,
+                  // Nombre “bonito” con atributos
                   displayName:
-                    selectedVariant?.color || selectedVariant?.size
-                      ? `${product.name} ${selectedVariant?.color ?? ""} ${selectedVariant?.size ?? ""}`.trim()
+                    selectedVariant
+                      ? `${product.name}${
+                          selectedVariant.colorName ? ` ${selectedVariant.colorName}` : ""
+                        }${selectedVariant.sizeName ? ` ${selectedVariant.sizeName}` : ""}`.trim()
                       : product.name,
                 }}
               />

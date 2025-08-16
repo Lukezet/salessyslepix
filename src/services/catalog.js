@@ -30,23 +30,26 @@ function mapProductApiToAdmin(p) {
   };
 }
 
-// Para enviar AL BACKEND desde ADMIN (aseguramos estructura)
+// Para enviar AL BACKEND desde ADMIN (estructura correcta)
 function mapAdminToApi(payload) {
   return {
     categoryId: payload.categoryId,
-    brandId: payload.brandId,                         // 👈 obligatorio ahora
+    brandId: payload.brandId,
     name: payload.name,
-    slug: payload.slug,
+    // si querés asegurar el slug auto desde el service:
+    // slug: slugify(payload.name),
+    slug: payload.slug, 
     description: payload.description,
     price: Number(payload.price) || 0,
-    images: (payload.images ?? []).map((i, idx) => ({
-      url: i.url,
-      sort: typeof i.sort === "number" ? i.sort : idx
-    })),
+
+    // 🚫 ya no usamos imágenes de producto
+    images: [],
+
+    // ✅ enviar IDs, no strings
     variants: (payload.variants ?? []).map(v => ({
-      color: v.color ?? null,
-      size: v.size ?? null,
-      sku: v.sku ?? "",
+      colorId: v.colorId ?? null,
+      sizeId:  v.sizeId  ?? null,
+      sku: v.sku || "", // (ya lo generás auto en el form)
       priceOverride:
         v.priceOverride === null || v.priceOverride === "" || typeof v.priceOverride === "undefined"
           ? null
@@ -56,7 +59,7 @@ function mapAdminToApi(payload) {
         url: vi.url,
         sort: typeof vi.sort === "number" ? vi.sort : j
       }))
-    }))
+    })),
   };
 }
 
@@ -141,3 +144,8 @@ export const uploadProductImage = (file) => {
     })
     .then(r => r.data); // { url }
 };
+
+// Colors and SizesOptions
+export const listColors = () => axiosClient.get("/api/colors").then(r => r.data);
+
+export const listSizes  = () => axiosClient.get("/api/sizes").then(r => r.data);
