@@ -149,3 +149,17 @@ export const uploadProductImage = (file) => {
 export const listColors = () => axiosClient.get("/api/colors").then(r => r.data);
 
 export const listSizes  = () => axiosClient.get("/api/sizes").then(r => r.data);
+
+//Crear orden de compra
+export async function createOrder(payload) {
+  const { data } = await axiosClient.post("/api/Orders", payload);
+  return data;
+}
+
+
+//EMPRESA
+
+export async function getEmpresaPhoneNumber() {
+  const { data } = await axiosClient.get("/api/Public/contacto");
+  return data; // Devuelve el string del número
+}

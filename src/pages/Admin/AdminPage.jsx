@@ -127,7 +127,7 @@ const filtered = useMemo(() => {
                   <td className="py-2 pr-2">
                     <div
                       className="w-16 h-12 bg-neutral-200 bg-center bg-cover rounded"
-                      style={{ backgroundImage: `url(${p.images?.[0] ?? ""})` }}
+                      style={{ backgroundImage: `url(${p.variants?.[0]?.images?.[0] ?? ""})` }}
                       title={p.name}
                     />
                   </td>

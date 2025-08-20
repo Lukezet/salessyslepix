@@ -46,7 +46,9 @@ export default function ProductForm({
   const [cats, setCats] = useState([]);
   const [colors, setColors] = useState([]); // 👈 NUEVO
   const [sizes, setSizes] = useState([]);   // 👈 NUEVO
-
+  const [newCategoryImage, setNewCategoryImage] = useState(null);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [creatingNewCategory, setCreatingNewCategory] = useState(false); 
   const [form, setForm] = useState(() => ({
     name: "",
     slug: "",
@@ -89,6 +91,7 @@ export default function ProductForm({
         } else {
           setForm(f => ({ ...f, price: 0 }));
         }
+
       } catch (e) {
         console.error(e);
         if (!alive) return;
@@ -99,7 +102,13 @@ export default function ProductForm({
     })();
     return () => { alive = false; };
   }, [productId, initial]);
-
+useEffect(() => {
+  return () => {
+    if (newCategoryImage?.previewUrl) {
+      URL.revokeObjectURL(newCategoryImage.previewUrl);
+    }
+  };
+}, [newCategoryImage?.previewUrl]);
   // Mapear API → Form (admin)
   function fromApiToForm(p) {
     return {
@@ -183,26 +192,27 @@ export default function ProductForm({
       return { ...prev, variants: arr };
     });
   };
+  
+  //   // ====== Imágenes de Variante ======
 
-  // ====== Imágenes de Variante ======
-  const addVariantFiles = async (idx, files) => {
-    const uploaded = [];
-    for (const f of files) {
-      const { url } = await uploadProductImage(f);
-      uploaded.push(url);
-    }
-    setForm(prev => {
-      const arr = [...prev.variants];
-      const curr = arr[idx];
-      const base = curr.images ?? [];
-      const nextImgs = [
-        ...base,
-        ...uploaded.map((u, i) => ({ url: u, sort: base.length + i }))
-      ];
-      arr[idx] = { ...curr, images: nextImgs };
-      return { ...prev, variants: arr };
-    });
-  };
+const addVariantFiles = (idx, files) => {
+  setForm(prev => {
+    const arr = [...prev.variants];
+    const curr = arr[idx];
+    const base = curr.images ?? [];
+    const nextImgs = [
+      ...base,
+      ...files.map((f, i) => ({
+        file: f,
+        previewUrl: URL.createObjectURL(f),
+        sort: base.length + i,
+      }))
+    ];
+    arr[idx] = { ...curr, images: nextImgs };
+    return { ...prev, variants: arr };
+  });
+};
+
 
   const removeVariantImage = (vIdx, imgIdx) => {
     setForm(prev => {
@@ -238,14 +248,27 @@ export default function ProductForm({
     setField("brandId", b.id);
   };
 
-  const quickAddCategory = async () => {
-    const name = prompt("Nombre de categoría");
-    if (!name) return;
-    const slug = slugify(name);
-    const c = await createCategory({ name, slug, image: null });
-    setCats(prev => [...prev, c]);
-    setField("categoryId", c.id);
-  };
+const quickAddCategory = async () => {
+  if (!newCategoryName.trim()) return;
+
+  let imageUrl = null;
+  if (newCategoryImage?.file) {
+    const { url } = await uploadProductImage(newCategoryImage.file);
+    imageUrl = url;
+  }
+
+  const slug = slugify(newCategoryName);
+  const c = await createCategory({ name: newCategoryName, slug, image: imageUrl });
+
+  setCats(prev => [...prev, c]);
+  setField("categoryId", c.id);
+
+  // Limpiar estado
+  setNewCategoryName("");
+  setNewCategoryImage(null);
+  setCreatingNewCategory(false);
+};
+
 
   // ====== Payload ======
   const payload = useMemo(() => {
@@ -309,24 +332,48 @@ export default function ProductForm({
     return null;
   };
 
-  const save = async () => {
-    const vErr = validate();
-    if (vErr) { setErr(vErr); return; }
-    try {
-      setSaving(true);
-      setErr(null);
-      console.log("PAYLOAD QUE SE ENVÍA >>>", JSON.stringify(payload, null, 2));
-      const res = initial || productId
-        ? await updateProduct(initial?.id ?? productId, payload)
-        : await createProduct(payload);
-      onSaved?.(res);
-    } catch (e) {
-      console.error(e);
-      setErr(e?.response?.data ?? "No se pudo guardar.");
-    } finally {
-      setSaving(false);
-    }
-  };
+const save = async () => {
+  const vErr = validate();
+  if (vErr) { setErr(vErr); return; }
+
+  try {
+    setSaving(true);
+    setErr(null);
+
+    // Clonar el form actual
+    const payload = { ...form };
+
+    // Subir imágenes de cada variante
+    payload.variants = await Promise.all(
+      form.variants.map(async (variant) => {
+        const uploadedImages = await Promise.all(
+          (variant.images ?? []).map(async (img, i) => {
+            // Si ya tiene `url`, ya está subida
+            if (img.url) return { url: img.url, sort: i };
+
+            // Subir la imagen
+            const { url } = await uploadProductImage(img.file);
+            return { url, sort: i };
+          })
+        );
+        return { ...variant, images: uploadedImages };
+      })
+    );
+
+    console.log("PAYLOAD QUE SE ENVÍA >>>", JSON.stringify(payload, null, 2));
+
+    const res = initial || productId
+      ? await updateProduct(initial?.id ?? productId, payload)
+      : await createProduct(payload);
+
+    onSaved?.(res);
+  } catch (e) {
+    console.error(e);
+    setErr(e?.response?.data ?? "No se pudo guardar.");
+  } finally {
+    setSaving(false);
+  }
+};
 
   if (loading) return <div className="p-4">Cargando…</div>;
 
@@ -392,19 +439,68 @@ export default function ProductForm({
             <button type="button" className="btn-custom px-3 py-2" onClick={quickAddBrand}>+ Nueva</button>
           </div>
         </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium">Categoría</label>
-          <div className="flex gap-2">
+       <div className="md:col-span-2">
+        <label className="block text-sm font-medium">Categoría</label>
+        <div className="flex gap-2 items-start flex-col sm:flex-row sm:items-center">
             <select
-              className="flex-1 border rounded px-3 py-2"
-              value={form.categoryId ?? ""}
-              onChange={e => setField("categoryId", e.target.value ? Number(e.target.value) : null)}
+            className="flex-1 border rounded px-3 py-2"
+            value={form.categoryId ?? ""}
+            onChange={e => setField("categoryId", e.target.value ? Number(e.target.value) : null)}
             >
-              <option value="">— Seleccionar —</option>
-              {cats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            <option value="">— Seleccionar —</option>
+            {cats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-            <button type="button" className="btn-custom px-3 py-2" onClick={quickAddCategory}>+ Nueva</button>
-          </div>
+
+            <button
+            type="button"
+            className="btn-custom px-3 py-2"
+            onClick={() => setCreatingNewCategory(!creatingNewCategory)}
+            >
+            {creatingNewCategory ? "Cancelar" : "+ Nueva"}
+            </button>
+        </div>
+
+        {creatingNewCategory && (
+            <div className="mt-3 border p-3 rounded bg-neutral-50 space-y-3">
+            <input
+                type="text"
+                className="w-full border px-3 py-2 rounded"
+                placeholder="Nombre de la nueva categoría"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+            />
+
+            <div className="flex items-center gap-4">
+                <FilePicker
+                label="Imagen de la categoría"
+                onFiles={(files) => {
+                    if (!files || files.length === 0) return;
+                    const file = files[0];
+                    const previewUrl = URL.createObjectURL(file);
+                    setNewCategoryImage({ file, previewUrl });
+                }}
+                multiple={false}
+                accept="image/*"
+                compact
+                />
+                {newCategoryImage?.previewUrl && (
+                <img
+                    src={newCategoryImage.previewUrl}
+                    alt="preview"
+                    className="w-16 h-16 object-cover rounded border"
+                />
+                )}
+            </div>
+
+            <button
+                type="button"
+                className="btn-custom"
+                onClick={quickAddCategory}
+            >
+                Crear categoría
+            </button>
+            </div>
+        )}
         </div>
 
         <div className="md:col-span-2">
@@ -533,7 +629,7 @@ export default function ProductForm({
                       <div className="flex flex-wrap gap-2 mt-2">
                         {v.images.map((img, j) => (
                           <div key={j} className="relative">
-                            <img src={img.url} alt="" className="w-24 h-20 object-cover rounded border" />
+                            <img src={img.url ?? img.previewUrl} alt="" className="w-24 h-20 object-cover rounded border" />
                             <div className="absolute inset-x-0 bottom-0 bg-black/50 text-white text-[11px] px-1 py-0.5 flex items-center justify-between rounded-b">
                               <span>#{j + 1}</span>
                               <div className="flex gap-1">
