@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || "https://localhost:7146";
+const baseURL = import.meta.env.VITE_API_BASE_URL;
 const sendTenantHeader = String(import.meta.env.VITE_SEND_TENANT_HEADER) === "true";
 
 export const axiosClient = axios.create({

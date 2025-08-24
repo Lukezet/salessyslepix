@@ -105,7 +105,33 @@ export default function CategoryPage() {
                     <div className="text-lg font-medium truncate">{p.name}</div>
                     <div className="text-sm">{formatPrice(p.price)}</div>
                   </div>
-                  <AddButton product={p} />
+            <AddButton
+                product={{
+                  id: p.id,
+                  name: p.name,
+                  brandName: p.brandName,
+                  description: p.description,
+                  // Lo que realmente se usa al agregar:
+                  price: p.price,
+                  images: [firstVariantImage], // strings para tu Card/Cart
+                  // Datos de la variante seleccionada:
+                  variantId: p.variants?.[0]?.id ?? null,
+                  sku: p.variants?.[0]?.sku ?? null,
+                  colorId: p.variants?.[0]?.colorId ?? null,
+                  colorName: p.variants?.[0]?.colorName ?? null,
+                  colorHex: p.variants?.[0]?.colorHex ?? null,
+                  sizeId: p.variants?.[0]?.sizeId ?? null,
+                  sizeName: p.variants?.[0]?.sizeName ?? null,
+                  // Nombre “bonito” con atributos
+                  displayName:
+                    p.variants?.[0]
+                      ? `${p.name}${
+                          p.variants?.[0]?.colorName ? ` ${p.variants?.[0]?.colorName}` : ""
+                        }${p.variants?.[0]?.sizeName ? ` ${p.variants?.[0]?.sizeName}` : ""}`.trim()
+                      : p.name,
+                }}
+              />
+                  {/* TO DO! DESCOMENTAR PARA ACTIVAR LAS COMPRAS RAPIDAS  */}
                 </div>
               </Link>
             );

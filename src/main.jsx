@@ -10,6 +10,7 @@ import CartPage from "./pages/CartPage";
 import Checkout from "./pages/Checkout";
 import AdminPage from "./pages/Admin/AdminPage";
 import ProductForm from "./pages/Admin/ProductForm";
+import OrdersDashboard from "./pages/Admin/OrderDashboard";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -23,6 +24,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <Route path="checkout" element={<Checkout />} />
           <Route path="admin" element={<AdminPage />} />
           <Route path="productForm" element={<ProductForm />} />
+          <Route path="ordersDashboard" element={<OrdersDashboard />} />
         </Route>
       </Routes>
     </BrowserRouter>

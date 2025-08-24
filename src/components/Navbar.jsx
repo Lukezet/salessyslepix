@@ -9,7 +9,7 @@ export default function Navbar() {
   return (
     <header className="bg-yellow-400 sticky top-0 z-20 sm:rounded-br-full">
       <div className="h-14 flex items-center justify-between sm:mr-12">
-        <Link to="/" className="font-bold text-2xl select-none ml-4 active:scale-95 transition duration-150 ease-out">Lepix</Link>
+        <Link to="/" className="font-bold text-2xl select-none ml-4 active:scale-95 transition duration-150 ease-out">LePix</Link>
         {/* carrito de compras */}
         <NavLink to="/cart" className="relative  sm:hidden">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-8">

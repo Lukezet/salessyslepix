@@ -17,7 +17,7 @@ export default function AddButton({ product, className = "" }) {
 
     let n = parseInt(qty, 10);
     if (!Number.isFinite(n) || n <= 0) n = 1;
-
+console.log(product)
     setBusy(true);
     add(product, n);          // ← ahora add compone lineId con variantId
     setLastQty(n);

@@ -163,3 +163,28 @@ export async function getEmpresaPhoneNumber() {
   const { data } = await axiosClient.get("/api/Public/contacto");
   return data; // Devuelve el string del número
 }
+
+// ======================
+// API (formato axiosClient.get/post/put/delete)
+// ======================
+export async function getOrders(page = 1, pageSize = 10, searchTerm = "", stateFilter = "") {
+  const { data } = await axiosClient.get("/api/orders", {
+    params: { page, pageSize, searchTerm, stateFilter },
+  });
+  return data;
+}
+
+export async function getOrdersSummary(fromDateISO, toDateISO) {
+  const { data } = await axiosClient.get("/api/orders/summary", {
+    params: { fromDate: fromDateISO, toDate: toDateISO },
+  });
+  return data; // [{ state: "Pending", count: 3, totalAmount: 12345 }, ...]
+}
+
+export async function updateOrderState(id, newState) {
+  await axiosClient.put(`/api/orders/${id}/state`, { newState });
+}
+
+export async function deleteOrder(id) {
+  await axiosClient.delete(`/api/orders/${id}`);
+}
