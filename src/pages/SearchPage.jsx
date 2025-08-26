@@ -65,9 +65,9 @@ const getThumbUrl = (p) => {
             loading="lazy"
             />
               </div>
-              <div className="mt-2">
-                <h3 className="text-sm font-medium line-clamp-2">{p.name}</h3>
-                <p className="text-sm text-gray-600">{formatPrice?.(p.price) ?? `$${p.price}`}</p>
+              <div className="mt-2 flex flex-col items-end">
+                <h3 className="text-sm font-medium line-clamp-2 self-start">{p.name}</h3>
+                <p className="text-sm text-gray-600 self-start">{formatPrice?.(p.price) ?? `$${p.price}`}</p>
                 <AddButton
                                 product={{
                                   id: p.id,

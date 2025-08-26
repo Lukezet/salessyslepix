@@ -20,37 +20,37 @@ export default function ProductDetail() {
   const [sizeId, setSizeId] = useState(null);
 
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        setLoading(true);
-        setErr(null);
-        setNotFound(false);
+  // si todavía no hay id válido, NO dispares el fetch
+  if (!Number.isFinite(pid) || pid <= 0) return;
 
-        const data = await getProductById(pid);
-        if (!alive) return;
+  const ac = new AbortController(); // cancelación si cambia pid/unmount
+  (async () => {
+    try {
+      setLoading(true);
+      setErr(null);
+      setNotFound(false);
 
-        const vs = Array.isArray(data.variants) ? data.variants : [];
-        const pre = vs.find(v => v.isDefault) || vs[0] || null;
+      const data = await getProductById(pid, { signal: ac.signal });
+      setProduct(data);
 
-        setProduct(data);
-        setColorId(pre?.colorId ?? null);
-        setSizeId(pre?.sizeId ?? null);
-      } catch (e) {
-        if (!alive) return;
-        if (e?.response?.status === 404) setNotFound(true);
-        else {
-          console.error(e);
-          setErr("No se pudo cargar el producto.");
-        }
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => { alive = false; };
-  }, [pid]);
+      const vs = Array.isArray(data.variants) ? data.variants : [];
+      const pre = vs.find(v => v.isDefault) || vs[0] || null;
+      setColorId(pre?.colorId ?? null);
+      setSizeId(pre?.sizeId ?? null);
+    } catch (e) {
+      if (ac.signal.aborted) return; // ignorar si se canceló
+      if (e?.response?.status === 404) setNotFound(true);
+      else setErr("No se pudo cargar el producto.");
+    } finally {
+      setLoading(false);
+    }
+  })();
 
-  const variants = product?.variants ?? [];
+  return () => ac.abort();
+}, [pid]);
+
+  const EMPTY = Object.freeze([]);
+  const variants = product?.variants ?? EMPTY;
 
   // Opciones de color únicas (por colorId)
   const colorOptions = useMemo(() => {
@@ -101,15 +101,13 @@ export default function ProductDetail() {
     return sel || variants[0] || null;
   }, [variants, colorId, sizeId]);
 
+  const productImages = product?.images ?? EMPTY;
+
   // Galería (strings) desde la variante
 const gallery = useMemo(() => {
-  const imgs = (selectedVariant?.images?.length
-    ? selectedVariant.images
-    : (product?.images ?? []));
-
-  // normaliza a string[]
+  const imgs = selectedVariant?.images?.length ? selectedVariant.images : productImages;
   return imgs.map(i => (typeof i === "string" ? i : i?.url)).filter(Boolean);
-}, [selectedVariant, product]);
+}, [selectedVariant, productImages]);
 
   // Precio mostrado (viene calculado del back: v.price = override ?? product.price)
   const displayPrice = selectedVariant?.price ?? product?.price ?? 0;
@@ -117,10 +115,10 @@ const gallery = useMemo(() => {
   if (notFound) return <p>Producto no encontrado.</p>;
 
   return (
-    <article className="relative grid md:grid-cols-2 gap-6">
+    <article className="relative lg:mx-64 grid md:grid-cols-2 gap-6">
       <button
         onClick={() => navigate(-1)}
-        className="fixed flex justify-center items-center opacity-50 hover:opacity-100 bottom-20 left-4 w-10 h-10 btn-custom z-10"
+        className="fixed flex justify-center items-center opacity-80 hover:opacity-100 top-18 right-4 w-10 h-10 btn-custom z-10"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-6">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />

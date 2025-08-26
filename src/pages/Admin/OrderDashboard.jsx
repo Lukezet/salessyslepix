@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState,useRef } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { getOrders, getOrdersSummary,deleteOrder,updateOrderState } from "../../services/catalog";
 import StateDropdown from "../../components/StateDropDown";
 // ======================
@@ -314,7 +314,7 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
       {selected && (
         <div className="fixed inset-0 z-40">
           <div className="absolute inset-0 bg-black/30" onClick={() => setSelected(null)} />
-          <div className="absolute right-0 top-0 h-full w-11/12 sm:w-[520px] bg-neutral-200 rounded-bl-full rounded-tl-2xl shadow-xl p-5 overflow-y-auto">
+          <div className="absolute right-0 top-0 h-full w-11/12 sm:w-[520px] bg-neutral-200 rounded-bl-4xl rounded-tl-2xl shadow-xl p-5 overflow-y-auto">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-lg font-semibold">Orden #{selected.id}</h3>

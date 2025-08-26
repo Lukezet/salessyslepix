@@ -56,7 +56,7 @@ export default function CategoryPage() {
     <section>
       <button
         onClick={() => navigate(-1)}
-        className="fixed flex justify-center items-center opacity-50 hover:opacity-100 top-18 right-4 w-10 h-10 btn-custom z-10"
+        className="fixed flex justify-center items-center opacity-80 hover:opacity-100 top-18 right-4 w-10 h-10 btn-custom z-10"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-6">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
@@ -102,7 +102,7 @@ export default function CategoryPage() {
                 />
                 <div className="absolute flex w-full justify-between bg-neutral-100/50 bottom-0 left-0 right-0 p-3 drop-shadow rounded-t-3xl rounded-b-lg">
                   <div>
-                    <div className="text-lg font-medium truncate">{p.name}</div>
+                    <div className="text-lg font-medium truncate w-52">{p.name}</div>
                     <div className="text-sm">{formatPrice(p.price)}</div>
                   </div>
             <AddButton
@@ -131,7 +131,7 @@ export default function CategoryPage() {
                       : p.name,
                 }}
               />
-                  {/* TO DO! DESCOMENTAR PARA ACTIVAR LAS COMPRAS RAPIDAS  */}
+                  
                 </div>
               </Link>
             );

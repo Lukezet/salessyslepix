@@ -86,14 +86,14 @@ const filtered = useMemo(() => {
     <section className="p-4 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <h1 className="text-2xl font-semibold flex-1">Gestión de Productos</h1>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <input
-            className="border rounded px-3 py-2 w-64"
+            className="inputRan rounded px-3 py-2 w-64 h-12"
             placeholder="Buscar por nombre, slug, marca, SKU…"
             value={q}
             onChange={e => setQ(e.target.value)}
           />
-          <button className="btn-custom px-3 py-2" onClick={onCreate}>+ Nuevo</button>
+          <button className="btn-custom px-3 py-4" onClick={onCreate}>+ Nuevo</button>
         </div>
       </div>
 
