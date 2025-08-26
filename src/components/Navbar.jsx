@@ -1,70 +1,85 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useCart } from "../store/cart";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [term, setTerm] = useState("");
+  const navigate = useNavigate();
   const total = useCart((s) => s.totalItems());
+
+  const onSearchSubmit = (e) => {
+    e.preventDefault();
+    const q = term.trim();
+    if (!q) return;
+    navigate(`/search?q=${encodeURIComponent(q)}`);
+    setOpen(false); // cierra el menú mobile
+  };
 
   return (
     <header className="bg-yellow-400 sticky top-0 z-20 sm:rounded-br-full">
       <div className="h-14 flex items-center justify-between sm:mr-12">
-        <Link to="/" className="font-bold text-2xl select-none ml-4 active:scale-95 transition duration-150 ease-out">LePix</Link>
-        {/* carrito de compras */}
-        <NavLink to="/cart" className="relative  sm:hidden">
+        <Link
+          to="/"
+          className="font-bold text-2xl select-none ml-4 active:scale-95 transition duration-150 ease-out"
+        >
+          LePix
+        </Link>
+
+        {/* Buscador (desktop) */}
+        <div className="hidden sm:block flex-1 px-4">
+          <form onSubmit={onSearchSubmit} role="search" className="relative max-w-xl mx-auto">
+            <input
+              type="search"
+              value={term}
+              onChange={(e) => setTerm(e.target.value)}
+              placeholder="Buscar artículos…"
+              autoComplete="off"
+              className="w-full rounded-full border px-3 py-2 pr-16 text-sm focus:outline-none focus:ring"
+            />
+            <button
+              type="submit"
+              className="absolute right-1 top-1/2 -translate-y-1/2 px-3 py-1 text-xs rounded-full border hover:bg-gray-50"
+            >
+              Buscar
+            </button>
+          </form>
+        </div>
+
+        {/* carrito de compras (mobile) */}
+        <NavLink to="/cart" className="relative sm:hidden">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-8">
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-            
           </svg>
           <span className="absolute top-4 -right-1 font-semibold text-xs rounded-full bg-green-900 text-white p-0.5 px-1">{total}</span>
         </NavLink>
 
-        
         {/* Botón hamburguesa animado */}
         <button
           aria-label={open ? "Cerrar menú" : "Abrir menú"}
           aria-expanded={open}
           aria-controls="mobile-menu"
           className="sm:hidden inline-flex items-center justify-center w-10 h-10 mr-4 rounded-md active:scale-95 transition duration-150 ease-out"
-          onClick={() => setOpen(o => !o)}
+          onClick={() => setOpen((o) => !o)}
         >
-          <span className="relative block w-6 h-4  cursor-pointer">
-            {/* línea 1 */}
-            <span
-              className={
-                "absolute left-0 top-0 h-[2px] w-6 bg-black transition-transform duration-300 " +
-                (open ? "translate-y-[6px] rotate-45" : "")
-              }
-            />
-            {/* línea 2 */}
-            <span
-              className={
-                "absolute left-0 top-1/2 -translate-y-1/2 h-[2px] w-6 bg-black transition-all duration-300 " +
-                (open ? "opacity-0" : "opacity-100")
-              }
-            />
-            {/* línea 3 */}
-            <span
-              className={
-                "absolute left-0 bottom-0 h-[2px] w-6 bg-black transition-transform duration-300 " +
-                (open ? "-translate-y-[6px] -rotate-45" : "")
-              }
-            />
+          <span className="relative block w-6 h-4 cursor-pointer">
+            <span className={"absolute left-0 top-0 h-[2px] w-6 bg-black transition-transform duration-300 " + (open ? "translate-y-[6px] rotate-45" : "")} />
+            <span className={"absolute left-0 top-1/2 -translate-y-1/2 h-[2px] w-6 bg-black transition-all duration-300 " + (open ? "opacity-0" : "opacity-100")} />
+            <span className={"absolute left-0 bottom-0 h-[2px] w-6 bg-black transition-transform duration-300 " + (open ? "-translate-y-[6px] -rotate-45" : "")} />
           </span>
         </button>
 
-
-
         {/* Nav desktop */}
-        <nav className="hidden sm:flex gap-4 items-center">
-          <NavLink to="/" className="hover:underline">Inicio</NavLink>
-          <NavLink to="/cart" className="relative">
+        <nav className="hidden sm:flex gap-4 sm:gap-12 items-center font-semibold">
+          <NavLink to="/" className="hover:scale-110 transition duration-150 ease-out active:scale-90">Inicio</NavLink>
+          <NavLink to="/ordersDashboard" className="hover:scale-110 transition duration-150 ease-out active:scale-90">Ventas</NavLink>
+          <NavLink to="/admin" className="hover:scale-110 transition duration-150 ease-out active:scale-90">Productos</NavLink>
+          <NavLink to="/cart" className="relative hover:scale-110 transition duration-150 ease-out active:scale-90">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-8">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
             </svg>
-          <span className="absolute top-4 -right-1 font-semibold text-xs rounded-full bg-green-900 text-white p-0.5 px-1">{total}</span>
+            <span className="absolute top-4 -right-1 font-semibold text-xs rounded-full bg-green-900 text-white p-0.5 px-1 ">{total}</span>
           </NavLink>
-          {/* <NavLink to="/admin" className="hover:underline">Gestión</NavLink> */}
         </nav>
       </div>
 
@@ -73,33 +88,49 @@ export default function Navbar() {
         id="mobile-menu"
         className={
           "sm:hidden bg-white overflow-hidden transition-all duration-300 " +
-          (open ? "max-h-60 opacity-100" : "max-h-0 opacity-0")
+          (open ? "max-h-72 opacity-100" : "max-h-0 opacity-0")
         }
       >
-        <div className="bg-yellow-400 pl-2 flex flex-col cursor-pointer">
-          {/* Bloque 1 y 2 “pegados” para el efecto de esquina compartida */}
-              <NavLink
-              to="/"
-              className="hover:bg-white rounded-l-full p-2 transition-colors duration-200 ease-in-out"
-              onClick={() => setOpen(false)}
-            >
-              Inicio
-            </NavLink>
-            <NavLink
-              to="/cart"
-              className="hover:bg-white rounded-l-full p-2 transition-colors duration-200 ease-in-out"
-              onClick={() => setOpen(false)}
-            >
-              Carrito ({total})
-            </NavLink>
-    
+        <div className="bg-yellow-400 pl-2 flex flex-col">
+          {/* Buscador (mobile) */}
+          <form onSubmit={onSearchSubmit} role="search" className="p-2 pr-4 cursor-auto">
+            <input
+              type="search"
+              value={term}
+              onChange={(e) => setTerm(e.target.value)}
+              placeholder="Buscar artículos…"
+              autoComplete="off"
+              className="w-full rounded-full border px-3 py-2 text-sm focus:outline-none focus:ring"
+            />
+          </form>
 
           <NavLink
+            to="/"
+            className="hover:bg-white rounded-l-full p-2 transition-colors duration-200 ease-in-out"
+            onClick={() => setOpen(false)}
+          >
+            Inicio
+          </NavLink>
+          <NavLink
+            to="/cart"
+            className="hover:bg-white rounded-l-full p-2 transition-colors duration-200 ease-in-out"
+            onClick={() => setOpen(false)}
+          >
+            Carrito ({total})
+          </NavLink>
+          <NavLink
             to="/admin"
+            className="hover:bg-white rounded-l-full p-2 transition-colors duration-200 ease-in-out"
+            onClick={() => setOpen(false)}
+          >
+            Productos
+          </NavLink>
+          <NavLink
+            to="/ordersDashboard"
             className="hover:bg-white rounded-l-full p-2 transition-colors duration-200 ease-in-out mb-2"
             onClick={() => setOpen(false)}
           >
-            Gestión
+            Ventas
           </NavLink>
         </div>
       </div>

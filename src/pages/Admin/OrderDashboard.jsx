@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState,useRef } from "react";
 import { getOrders, getOrdersSummary,deleteOrder,updateOrderState } from "../../services/catalog";
-
+import StateDropdown from "../../components/StateDropDown";
 // ======================
 // Utils
 // ======================
@@ -16,7 +16,12 @@ const stateColors = {
   Delivered: "bg-green-100 text-green-800 ring-green-200",
   Cancelled: "bg-rose-100 text-rose-800 ring-rose-200",
 };
-
+const stateBg = {
+  Pending: "border-2 border-yellow-400  hover:bg-yellow-100 ",
+  Approved: "border-2 border-blue-400 hover:bg-blue-100 ",
+  Delivered: "border-2 border-green-400  hover:bg-green-100 ",
+  Cancelled: "border-2 border-rose-400 hover:bg-rose-100 ",
+};
 
 
 // ======================
@@ -92,6 +97,7 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
 
   // Acciones
   const onChangeState = async (order, newState) => {
+    console.log(newState)
     if (!order || order.state === newState) return;
     try {
       await updateOrderState(order.id, newState);
@@ -131,14 +137,14 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
           <p className="text-sm text-gray-500">Listado, KPIs y resumen por estado</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={loadSummary} className="px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
+          <button onClick={loadSummary} className="px-3 py-2 rounded-xl border-2 border-amber-400 text-sm hover:bg-gray-50">
             Refrescar resumen
           </button>
         </div>
       </div>
 
       {/* Filtros */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <input
           value={searchTerm}
           onChange={(e) => {
@@ -146,7 +152,7 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
             setPage(1);
           }}
           placeholder="Buscar por nombre, teléfono, email"
-          className="border rounded-2xl px-3 py-2"
+          className="border rounded-2xl px-3 py-2 inputRan"
         />
         <select
           value={stateFilter}
@@ -154,9 +160,9 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
             setStateFilter(e.target.value);
             setPage(1);
           }}
-          className="border rounded-2xl px-3 py-2"
+          className="border rounded-2xl px-3 py-2 inputRan"
         >
-          <option value="">Todos los estados</option>
+          <option className="border rounded-lg shadow bg-amber-200" value="">Todos los estados</option>
           <option value="Pending">Pendiente</option>
           <option value="Approved">Aprobado</option>
           <option value="Delivered">Entregado</option>
@@ -168,7 +174,7 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
             setPageSize(Number(e.target.value));
             setPage(1);
           }}
-          className="border rounded-2xl px-3 py-2"
+          className="inputRan px-3 py-2"
         >
           {[10, 20, 50].map((n) => (
             <option key={n} value={n}>
@@ -187,19 +193,19 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
       </div>
 
       {/* Resumen por estado (lista simple, sin librerías) */}
-      <div className="rounded-2xl border p-4 space-y-3">
+      <div className="rounded-2xl  shadow-lg p-4 space-y-3 ring-2 ring-amber-300 border-4 border-white  bg-neutral-100">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <h2 className="font-semibold">Resumen por estado (rango)</h2>
-          <div className="flex items-center gap-2">
-            <input type="date" value={summaryFrom} onChange={(e) => setSummaryFrom(e.target.value)} className="border rounded-xl px-2 py-1" />
+          <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+            <input type="date" value={summaryFrom} onChange={(e) => setSummaryFrom(e.target.value)} className="border rounded-xl px-2 py-1 inputRan" />
             <span>→</span>
-            <input type="date" value={summaryTo} onChange={(e) => setSummaryTo(e.target.value)} className="border rounded-xl px-2 py-1" />
-            <button onClick={loadSummary} className="px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">Aplicar</button>
+            <input type="date" value={summaryTo} onChange={(e) => setSummaryTo(e.target.value)} className="border rounded-xl px-2 py-1 inputRan" />
+            <button onClick={loadSummary} className="w-48 px-3 py-2 mt-4 rounded-xl border text-sm hover:bg-gray-50 btn-custom">Aplicar</button>
           </div>
         </div>
         <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
           {summary.map((s, i) => (
-            <li key={`${s.state}-${i}`} className="rounded-xl border p-3 flex items-center justify-between">
+            <li key={`${s.state}-${i}`} className={`rounded-2xl p-3 shadow flex items-center justify-between ${stateBg[s.state]} `}>
               <div className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 ring-1 ${stateColors[s.state] || "bg-gray-100 text-gray-700 ring-gray-200"}`}>
                 <span className="text-xs font-medium">{s.state}</span>
               </div>
@@ -214,10 +220,10 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
       </div>
 
       {/* Tabla */}
-      <div className="rounded-2xl border overflow-hidden">
+      <div className="rounded-2xl  overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-neutral-700 text-white">
               <tr className="text-left">
                 <Th>ID</Th>
                 <Th>Fecha</Th>
@@ -228,7 +234,7 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
                 <Th></Th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="bg-neutral-300">
               {loading && (
                 <tr>
                   <td colSpan={7} className="p-6 text-center text-gray-500">Cargando...</td>
@@ -245,7 +251,7 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
                 </tr>
               )}
               {data?.items?.map((o) => (
-                <tr key={o.id} className="border-t">
+                <tr key={o.id} className="shadow hover:bg-amber-300">
                   <Td>#{o.id}</Td>
                   <Td>{formatDateTime(o.createdAt)}</Td>
                   <Td className="max-w-[220px] truncate">{o.customerName || "—"}</Td>
@@ -260,27 +266,16 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => setSelected(o)}
-                        className="px-2.5 py-1.5 rounded-xl border text-xs hover:bg-gray-50"
+                        className="px-2.5 py-1.5 rounded-xl border text-xs btn-custom hover:bg-gray-50"
                       >
                         Ver
                       </button>
                       <div className="relative group inline-block">
-                        <button className="px-2.5 py-1.5 rounded-xl border text-xs hover:bg-gray-50">Estado ▾</button>
-                        <div className="absolute right-0 z-10 hidden group-hover:block bg-white border rounded-xl shadow p-1 mt-1 min-w-[160px]">
-                          {["Pending", "Approved", "Delivered", "Cancelled"].map((st) => (
-                            <button
-                              key={st}
-                              onClick={() => onChangeState(o, st)}
-                              className={`block w-full text-left px-3 py-1.5 rounded-lg text-sm hover:bg-gray-50 ${st === o.state ? "opacity-60" : ""}`}
-                            >
-                              {st}
-                            </button>
-                          ))}
-                        </div>
+                        <StateDropdown o={o} onChangeState={onChangeState} />
                       </div>
                       <button
                         onClick={() => setConfirmDelete(o)}
-                        className="px-2.5 py-1.5 rounded-xl border text-xs hover:bg-rose-50 hover:text-rose-600"
+                        className="px-2.5 py-1.5 rounded-xl border text-xs hover:bg-rose-50 btn-custom hover:text-rose-600"
                       >
                         Eliminar
                       </button>
@@ -292,20 +287,20 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
           </table>
         </div>
         {/* Paginación */}
-        <div className="flex items-center justify-between p-3 border-t bg-gray-50">
+        <div className="flex items-center justify-between p-3 border-t bg-neutral-500">
           <p className="text-xs text-gray-500">
             Página {data?.page ?? page} de {data?.totalPages ?? 1} — {data?.totalCount ?? 0} resultados
           </p>
           <div className="flex items-center gap-2">
             <button
-              className="px-3 py-1.5 rounded-xl border text-sm disabled:opacity-50"
+              className="px-3 py-1.5 rounded-xl border text-sm disabled:opacity-50 btn-custom"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={(data?.page ?? page) <= 1}
             >
               Anterior
             </button>
             <button
-              className="px-3 py-1.5 rounded-xl border text-sm disabled:opacity-50"
+              className="px-3 py-1.5 rounded-xl border text-sm disabled:opacity-50 btn-custom"
               onClick={() => setPage((p) => (data?.totalPages ? Math.min(data.totalPages, p + 1) : p + 1))}
               disabled={!!data && data.page >= data.totalPages}
             >
@@ -319,7 +314,7 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
       {selected && (
         <div className="fixed inset-0 z-40">
           <div className="absolute inset-0 bg-black/30" onClick={() => setSelected(null)} />
-          <div className="absolute right-0 top-0 h-full w-full sm:w-[520px] bg-white shadow-xl p-5 overflow-y-auto">
+          <div className="absolute right-0 top-0 h-full w-11/12 sm:w-[520px] bg-neutral-200 rounded-bl-full rounded-tl-2xl shadow-xl p-5 overflow-y-auto">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-lg font-semibold">Orden #{selected.id}</h3>
@@ -328,7 +323,7 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
                   <span className="text-xs font-medium">{selected.state}</span>
                 </div>
               </div>
-              <button className="px-2.5 py-1.5 rounded-xl border text-xs" onClick={() => setSelected(null)}>
+              <button className="px-2.5 py-1.5 rounded-xl border text-xs btn-danger" onClick={() => setSelected(null)}>
                 Cerrar
               </button>
             </div>
@@ -374,7 +369,7 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
               </div>
             </div>
 
-            <div className="mt-6 flex items-center justify-between">
+            <div className="mt-6 flex-col items-end justify-end">
               <div className="flex gap-2">
                 {["Pending", "Approved", "Delivered", "Cancelled"].map((st) => (
                   <button
@@ -387,7 +382,7 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
                 ))}
               </div>
               <button
-                className="px-3 py-1.5 rounded-xl border text-xs hover:bg-rose-50 hover:text-rose-600"
+                className="mt-3 px-3 py-1.5 rounded-xl border text-xs hover:bg-rose-50 btn-danger"
                 onClick={() => setConfirmDelete(selected)}
               >
                 Eliminar orden
@@ -430,8 +425,8 @@ function Td({ children, className = "" }) {
 }
 function KpiCard({ title, value }) {
   return (
-    <div className="rounded-2xl border p-4">
-      <p className="text-xs text-gray-500">{title}</p>
+    <div className="border p-4 panel-custom ">
+      <p className="text-xs text-gray-500 ">{title}</p>
       <p className="mt-1 text-xl font-semibold">{value}</p>
     </div>
   );

@@ -188,3 +188,12 @@ export async function updateOrderState(id, newState) {
 export async function deleteOrder(id) {
   await axiosClient.delete(`/api/orders/${id}`);
 }
+export async function searchProducts({ q }) {
+  const params = new URLSearchParams({ q });
+  // Ajustá la ruta a la que tengas en tu .NET (ejemplos comunes):
+  // const { data } = await api.get(`/api/products/search?${params}`);
+  // o: 
+  // const { data } = await api.get(`/api/products?search=${encodeURIComponent(q)}&page=${page}&pageSize=${pageSize}`);
+  const { data } = await axiosClient.get(`/api/Products/search?${params}`); // ← ajustá esto
+  return data;
+}

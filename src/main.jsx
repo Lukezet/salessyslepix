@@ -11,7 +11,7 @@ import Checkout from "./pages/Checkout";
 import AdminPage from "./pages/Admin/AdminPage";
 import ProductForm from "./pages/Admin/ProductForm";
 import OrdersDashboard from "./pages/Admin/OrderDashboard";
-
+import SearchPage from "./pages/SearchPage";
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
@@ -25,6 +25,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <Route path="admin" element={<AdminPage />} />
           <Route path="productForm" element={<ProductForm />} />
           <Route path="ordersDashboard" element={<OrdersDashboard />} />
+          <Route path="/search" element={<SearchPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
