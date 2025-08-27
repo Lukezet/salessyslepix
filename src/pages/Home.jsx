@@ -6,7 +6,7 @@ export default function Home() {
   const [cats, setCats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
-
+console.log("renderhome")
   const load = async () => {
     try {
       setErr(null);

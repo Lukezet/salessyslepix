@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { getCategoryById, getProductsByCategoryId } from "../services/catalog";
+import {  getProductsByCategoryId } from "../services/catalog";
 import { formatPrice } from "../utils/format";
 import AddButton from "../components/Addbutton";
 
@@ -8,47 +8,48 @@ export default function CategoryPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const cid = Number(id);
-
+  const timestamp = Date.now();
+console.log(`API call started cat at ${timestamp}`);
+console.log('🔄 CategoryPage mounted with cid:', cid);
   const [cat, setCat] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const [notFound, setNotFound] = useState(false);
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        setLoading(true);
-        setErr(null);
-        setNotFound(false);
+useEffect(() => {
+  let alive = true;
+  (async () => {
+    try {
+      setLoading(true);
+      setErr(null);
+      setNotFound(false);
+ console.log('🚀 useEffect triggered for cid:', cid);
+      // Solo cargar productos - eliminar getCategoryById
+      const products = await getProductsByCategoryId(cid);
 
-        // Pedimos categoría y productos en paralelo (performance)
-        const [c, p] = await Promise.all([
-          getCategoryById(cid),
-          getProductsByCategoryId(cid),
-        ]);
+      if (!alive) return;
+      setItems(products);
+      
+      // El nombre de categoría puede venir del backend junto con productos
+      // O lo puedes obtener de otra forma
+      setCat({ name: "Categoría" }); // Placeholder mientras optimizas backend
 
-        if (!alive) return;
-        setCat(c);
-        setItems(p);
-      } catch (e) {
-        if (!alive) return;
-        if (e?.response?.status === 404) {
-          setNotFound(true);
-        } else {
-          console.error(e);
-          setErr("No se pudo cargar la categoría.");
-        }
-      } finally {
-        if (alive) setLoading(false);
+    } catch (e) {
+      if (!alive) return;
+      if (e?.response?.status === 404) {
+        setNotFound(true);
+      } else {
+        console.error(e);
+        setErr("No se pudo cargar la categoría.");
       }
-    })();
+    } finally {
+      if (alive) setLoading(false);
+    }
+  })();
 
-    return () => {
-      alive = false;
-    };
-  }, [cid]);
+  return () => { alive = false; };
+}, [cid]);
 
   if (notFound) return <p>Categoría no encontrada.</p>;
 

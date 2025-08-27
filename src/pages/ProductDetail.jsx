@@ -9,7 +9,9 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
   const pid = Number(id);
-
+console.log('🔄 CategoryPage mounted with cid:', pid);
+const timestamp = Date.now();
+console.log(`API call started  DetailProduct at ${timestamp}`);
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
@@ -115,7 +117,7 @@ const gallery = useMemo(() => {
   if (notFound) return <p>Producto no encontrado.</p>;
 
   return (
-    <article className="relative lg:mx-64 grid md:grid-cols-2 gap-6">
+    <article className="relative md: xl:mx-52 grid md:grid-cols-2 gap-6">
       <button
         onClick={() => navigate(-1)}
         className="fixed flex justify-center items-center opacity-80 hover:opacity-100 top-18 right-4 w-10 h-10 btn-custom z-10"

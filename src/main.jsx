@@ -13,7 +13,6 @@ import ProductForm from "./pages/Admin/ProductForm";
 import OrdersDashboard from "./pages/Admin/OrderDashboard";
 import SearchPage from "./pages/SearchPage";
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<App />}>
@@ -29,5 +28,4 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         </Route>
       </Routes>
     </BrowserRouter>
-  </React.StrictMode>
 );

@@ -8,15 +8,14 @@ import { useRef, useState, useCallback } from "react";
 export default function useSwipe({
   onLeft,      // usuario desliza hacia la izquierda  -> siguiente
   onRight,     // usuario desliza hacia la derecha   -> anterior
-  threshold = 40, // px para disparar swipe
+  threshold = 30, // px para disparar swipe
 } = {}) {
   const start = useRef({ x: 0, y: 0, active: false, lock: null });
   const [dragX, setDragX] = useState(0);
 
-  const onPointerDown = useCallback((e) => {
-    start.current = { x: e.clientX, y: e.clientY, active: true, lock: null };
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-  }, []);
+const onPointerDown = useCallback((e) => {
+start.current = { x: e.clientX, y: e.clientY, active: true, lock: null };
+}, []);
 
   const onPointerMove = useCallback((e) => {
     if (!start.current.active) return;
@@ -27,6 +26,7 @@ export default function useSwipe({
     if (!start.current.lock) {
       if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
         start.current.lock = "x";
+        e.currentTarget.setPointerCapture?.(e.pointerId); // ✅ capturá recién acá
       } else if (Math.abs(dy) > 8) {
         start.current.lock = "y";
       }

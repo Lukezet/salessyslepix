@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import Navbar from "./components/Navbar";
 
 export default function App() {
+  console.log('App component rendered');
   return (
     <div className="min-h-dvh w-full flex flex-col bg-white">
       <Navbar />

@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import LightboxModal from "./LightBoxModal";
 import useSwipe from "../hooks/useSwipe";
 
 export default function ImageSlider({ images = [], alt = "" }) {
+  // Normalizo: acepto string o { id?, url, sort? }
   const slides = useMemo(() => {
     return images
       .map((img, i) => {
         const url = typeof img === "string" ? img : img?.url;
         if (!url) return null;
         const id = typeof img === "object" ? (img.id ?? img.Id) : null;
+        // Key estable y única
         const key = id != null ? `img-${id}` : `img-${url}-${i}`;
         return { key, url };
       })
@@ -19,43 +21,32 @@ export default function ImageSlider({ images = [], alt = "" }) {
   const [open, setOpen] = useState(false);
   const lock = useRef(false);
 
+  // Si cambia el set de imágenes, aseguro que el índice sea válido
   useEffect(() => {
     if (idx >= slides.length) setIdx(0);
   }, [slides.length, idx]);
 
-  const next = useCallback(() => {
-    if (lock.current || slides.length === 0) return;
-    lock.current = true;
-    setIdx(i => (i + 1) % slides.length);
-    setTimeout(() => (lock.current = false), 200);
-  }, [slides.length]);
+  
 
-  const prev = useCallback(() => {
-    if (lock.current || slides.length === 0) return;
-    lock.current = true;
-    setIdx(i => (i - 1 + slides.length) % slides.length);
-    setTimeout(() => (lock.current = false), 200);
-  }, [slides.length]);
-
-  // ⬇️ El hook va ANTES de cualquier return
+  const next = () => { if (!lock.current) { lock.current = true; setIdx(i => (i + 1) % slides.length); setTimeout(() => (lock.current = false), 200); } };
+  const prev = () => { if (!lock.current) { lock.current = true; setIdx(i => (i - 1 + slides.length) % slides.length); setTimeout(() => (lock.current = false), 200); } };
+  // <- NUEVO: swipe
   const { bind, dragX } = useSwipe({ onLeft: next, onRight: prev, threshold: 40 });
-
-  if (!slides.length) {
-    return <div className="h-64 bg-neutral-100 rounded" />;
-  }
+if (!slides.length) return <div className="h-64 bg-neutral-100 rounded" />;
 
   return (
     <div className="w-full sm:flex sm:flex-row-reverse">
-      <div className="relative overflow-hidden rounded-b-3xl touch-pan-y" {...bind}>
-        <img
+      <div className="relative overflow-hidden rounded-b-3xl touch-pan-y select-none" {...bind}>
+        
+                <img
           src={slides[idx].url}
           alt={alt}
-          style={{
+                    style={{
             transform: `translateX(${dragX}px)`,
             transition: dragX === 0 ? "transform 150ms ease-out" : "none",
           }}
           className="w-full h-auto select-none cursor-zoom-in"
-          onClick={() => setOpen(true)}
+          onClick={() => setOpen(true)}          // <- abre modal
         />
         <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 rounded-full w-9 h-9 grid place-content-center active:scale-95">‹</button>
         <button onClick={next} className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 rounded-full w-9 h-9 grid place-content-center active:scale-95">›</button>
@@ -72,7 +63,7 @@ export default function ImageSlider({ images = [], alt = "" }) {
           </button>
         ))}
       </div>
-
+       {/* Modal */}
       <LightboxModal
         open={open}
         images={slides.map(s => s.url)}

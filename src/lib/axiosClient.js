@@ -5,7 +5,7 @@ const sendTenantHeader = String(import.meta.env.VITE_SEND_TENANT_HEADER) === "tr
 
 export const axiosClient = axios.create({
   baseURL,
-  timeout: 15000,
+  timeout: 30000,
 });
 
 axiosClient.interceptors.request.use((config) => {
