@@ -38,7 +38,7 @@ console.log(product)
     <>
       <div className={`relative w-20 h-12 ${className}`}>
         <button
-          className="z-20 top-0 right-0 absolute group cursor-pointer outline-none hover:rotate-90 duration-300"
+          className="z-10 top-0 right-0 absolute group cursor-pointer outline-none hover:rotate-90 duration-300"
           title="Agregar"
           onClick={handleAdd}
           disabled={busy}
@@ -50,7 +50,7 @@ console.log(product)
           </svg>
         </button>
         <input
-          className="absolute z-10 top-1.5 right-4 w-16 h-7 bg-white rounded-l-2xl pl-4 no-spinner"
+          className="absolute  top-1.5 right-4 w-16 h-7 bg-white rounded-l-2xl pl-4 no-spinner"
           type="number"
           min={1}
           inputMode="numeric"

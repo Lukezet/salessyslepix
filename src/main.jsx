@@ -9,23 +9,45 @@ import ProductDetail from "./pages/ProductDetail";
 import CartPage from "./pages/CartPage";
 import Checkout from "./pages/Checkout";
 import AdminPage from "./pages/Admin/AdminPage";
-import ProductForm from "./pages/Admin/ProductForm";
 import OrdersDashboard from "./pages/Admin/OrderDashboard";
 import SearchPage from "./pages/SearchPage";
+
+import RequireAuth from "./components/auth/RequireAuth";
+import RequireRole from "./components/auth/RequireRole";
+
 ReactDOM.createRoot(document.getElementById("root")).render(
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<App />}>
-          <Route index element={<Home />} />
-          <Route path="category/:id" element={<CategoryPage />} />
-          <Route path="product/:id" element={<ProductDetail />} />
-          <Route path="cart" element={<CartPage />} />
-          <Route path="checkout" element={<Checkout />} />
-          <Route path="admin" element={<AdminPage />} />
-          <Route path="productForm" element={<ProductForm />} />
-          <Route path="ordersDashboard" element={<OrdersDashboard />} />
-          <Route path="/search" element={<SearchPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+  <BrowserRouter>
+    <Routes>
+      <Route path="/" element={<App />}>
+        <Route index element={<Home />} />
+        <Route path="category/:id" element={<CategoryPage />} />
+        <Route path="product/:id" element={<ProductDetail />} />
+        <Route path="cart" element={<CartPage />} />
+        <Route path="checkout" element={<Checkout />} />
+        <Route path="/search" element={<SearchPage />} />
+
+        {/* Protegidas: Admin + Employee */}
+        <Route
+          path="admin"
+          element={
+            <RequireAuth>
+              <RequireRole allowed={["Admin", "Employee"]}>
+                <AdminPage />
+              </RequireRole>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="ordersDashboard"
+          element={
+            <RequireAuth>
+              <RequireRole allowed={["Admin", "Employee"]}>
+                <OrdersDashboard />
+              </RequireRole>
+            </RequireAuth>
+          }
+        />
+      </Route>
+    </Routes>
+  </BrowserRouter>
 );

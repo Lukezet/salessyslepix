@@ -1,8 +1,13 @@
 import { Outlet } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import { useEffect} from "react";
+import { useAuth } from "./store/auth";
 
 export default function App() {
   console.log('App component rendered');
+  useEffect(() => {
+    useAuth.getState().initFromStorage();
+  }, []);
   return (
     <div className="min-h-dvh w-full flex flex-col bg-white">
       <Navbar />

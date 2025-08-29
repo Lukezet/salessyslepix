@@ -197,3 +197,17 @@ export async function searchProducts({ q }) {
   const { data } = await axiosClient.get(`/api/Products/search?${params}`); // ← ajustá esto
   return data;
 }
+
+// === AUTH ===
+export async function authLogin({ email, password }) {
+  const { data } = await axiosClient.post("/api/auth/login", { email, password });
+  return data; // { token, userName, email, empresaId, roles:[] }
+}
+// Helpers para setear/quitar el header global Authorization
+export function setAuthToken(token) {
+  if (token) {
+    axiosClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  } else {
+    delete axiosClient.defaults.headers.common["Authorization"];
+  }
+}

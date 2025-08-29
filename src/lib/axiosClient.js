@@ -8,6 +8,7 @@ export const axiosClient = axios.create({
   timeout: 30000,
 });
 
+// Interceptor de requests
 axiosClient.interceptors.request.use((config) => {
   if (sendTenantHeader) {
     const empId = Number(import.meta.env.VITE_DEFAULT_EMPRESA_ID) || 1;
@@ -15,3 +16,52 @@ axiosClient.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Interceptor de responses - NUEVO
+axiosClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    let errorMessage = 'Ha ocurrido un error inesperado';
+    
+    if (error.response) {
+      // El servidor respondió con un código de error
+      const { status, data } = error.response;
+      
+      switch (status) {
+        case 401:
+          errorMessage = data.message || 'Email o contraseña incorrectos';
+          break;
+        case 400:
+          errorMessage = data.message || 'Los datos proporcionados no son válidos';
+          break;
+        case 403:
+          errorMessage = 'No tienes permisos para realizar esta acción';
+          break;
+        case 404:
+          errorMessage = 'El recurso solicitado no fue encontrado';
+          break;
+        case 422:
+          errorMessage = data.message || 'Error de validación';
+          break;
+        case 500:
+          errorMessage = 'Error interno del servidor. Intenta nuevamente.';
+          break;
+        default:
+          errorMessage = data.message || `Error del servidor (${status})`;
+      }
+    } else if (error.request) {
+      // La petición se hizo pero no hubo respuesta
+      errorMessage = 'No se pudo conectar con el servidor. Verifica tu conexión.';
+    } else if (error.code === 'ECONNABORTED') {
+      // Timeout
+      errorMessage = 'La solicitud tardó demasiado. Intenta nuevamente.';
+    }
+    
+    // Crear un nuevo error con mensaje amigable
+    const friendlyError = new Error(errorMessage);
+    friendlyError.originalError = error;
+    friendlyError.statusCode = error.response?.status;
+    
+    return Promise.reject(friendlyError);
+  }
+);
