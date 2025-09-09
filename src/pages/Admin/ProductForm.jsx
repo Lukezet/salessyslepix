@@ -1,6 +1,7 @@
 // src/admin/ProductForm.jsx
 import { useEffect, useMemo, useState } from "react";
 import FilePicker from "../../components/FilePicker";
+import { slugify } from "../../lib/slugify";
 import {
   listBrands,
   createBrand,
@@ -13,15 +14,15 @@ import {
   listColors,     // 👈 NUEVO
   listSizes,      // 👈 NUEVO
 } from "../../services/catalog";
-
-function slugify(str = "") {
-  return String(str)
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
+const CURRENCY = { USD: 1, ARS: 2 };
+// function slugify(str = "") {
+//   return String(str)
+//     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+//     .toLowerCase()
+//     .trim()
+//     .replace(/[^a-z0-9]+/g, "-")
+//     .replace(/(^-|-$)/g, "");
+// }
 
 // SKU = nombre-color-tamaño (todo slugificado/minúsculas)
 function buildVariantSku(productName, color, size) {
@@ -51,7 +52,6 @@ export default function ProductForm({
   const [creatingNewCategory, setCreatingNewCategory] = useState(false); 
   const [form, setForm] = useState(() => ({
     name: "",
-    slug: "",
     description: "",
     price: 0,
     brandId: null,
@@ -60,6 +60,7 @@ export default function ProductForm({
     images: [],
     // Ahora variantes usan colorId/sizeId (IDs globales)
     variants: [], // [{ colorId, sizeId, sku, priceOverride, isDefault, images:[{url,sort}] }]
+    currency: CURRENCY.USD
   }));
 
   // Cargar bases + producto
@@ -113,13 +114,13 @@ useEffect(() => {
   function fromApiToForm(p) {
     return {
       name: p.name ?? "",
-      slug: p.slug ?? "", // se re-generará si está vacío
       description: p.description ?? "",
       price: Number(p.price ?? 0),
       brandId: p.brandId ?? null,
       categoryId: p.categoryId ?? null,
       images: [], // 🚫 ya no usamos imágenes de producto
       variants: Array.isArray(p.variants) ? p.variants.map(v => ({
+        id: v.id ?? null, 
         colorId: typeof v.colorId === "number" ? v.colorId : null,
         sizeId:  typeof v.sizeId  === "number" ? v.sizeId  : null,
         // SKU se recalcula abajo, pero lo guardamos por si viene:
@@ -132,6 +133,7 @@ useEffect(() => {
           sort: typeof vi.sort === "number" ? vi.sort : j
         })) : []
       })) : [],
+      currency: typeof p.currency === "number" ? p.currency : CURRENCY.USD,
     };
   }
 
@@ -279,7 +281,7 @@ const quickAddCategory = async () => {
     return {
       name: form.name,
       // slug de producto oculto (solo nombre)
-      slug: form.slug?.trim() ? form.slug : slugify(form.name),
+      slug: slugify(form.name),
       description: form.description,
       price: Number(form.price) || 0,
       brandId: form.brandId,
@@ -287,7 +289,7 @@ const quickAddCategory = async () => {
 
       // 🚫 No enviamos imágenes de producto (lo dejamos vacío)
       images: [],
-
+      currency: form.currency, // 👈 NEW
       // variantes con IDs y SKU auto
       variants: (form.variants ?? []).map(v => {
         const c = v.colorId ? colorMap.get(v.colorId) : null;
@@ -342,7 +344,7 @@ const save = async () => {
 
     // Clonar el form actual
     const payload = { ...form };
-
+    console.log()
     // Subir imágenes de cada variante
     payload.variants = await Promise.all(
       form.variants.map(async (variant) => {
@@ -360,7 +362,7 @@ const save = async () => {
       })
     );
 
-    console.log("PAYLOAD QUE SE ENVÍA >>>", JSON.stringify(payload, null, 2));
+    
 
     const res = initial || productId
       ? await updateProduct(initial?.id ?? productId, payload)
@@ -416,14 +418,30 @@ const save = async () => {
         <div>... (eliminado) ...</div>
         */}
         <div>
-          <label className="block text-sm font-medium">Precio base</label>
-          <input
-            type="number"
-            className="w-full border rounded px-3 py-2"
-            value={form.price}
-            onChange={e => setField("price", e.target.value)}
-            min={0}
-          />
+          <label className="block text-sm font-medium">
+            Precio base {form.currency === CURRENCY.USD ? "(USD)" : "(ARS)"}
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              className="w-full border rounded px-3 py-2"
+              value={form.price}
+              onChange={e => setField("price", e.target.value)}
+              min={0}
+            />
+            <select
+              className="w-28 border rounded px-2 py-2"
+              value={form.currency}
+              onChange={e => setField("currency", Number(e.target.value))} // 👈 importante: número
+              title="Moneda de carga"
+            >
+              <option value={CURRENCY.USD}>USD</option>
+              <option value={CURRENCY.ARS}>ARS</option>
+            </select>
+          </div>
+          <p className="mt-1 text-xs text-neutral-500">
+            Los precios ingresados se interpretan en la moneda elegida. El cliente siempre ve ARS.
+          </p>
         </div>
         <div>
           <label className="block text-sm font-medium">Marca</label>
@@ -573,7 +591,9 @@ const save = async () => {
 
                     {/* Precio override */}
                     <div>
-                      <label className="block text-sm">Precio (override)</label>
+                      <label className="block text-sm">
+                        Precio (override) {form.currency === CURRENCY.USD ? "USD" : "ARS"}
+                      </label>
                       <input
                         type="number"
                         className="w-full border rounded px-2 py-1"

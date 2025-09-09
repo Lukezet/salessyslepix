@@ -1,6 +1,5 @@
 // src/services/catalog.js (o el archivo que estás usando)
 import { axiosClient } from "../lib/axiosClient";
-
 /* ========= MAPPERS ========= */
 
 // Para TIENDA: imágenes como string[] (lo que espera tu ImageSlider)
@@ -38,15 +37,15 @@ function mapAdminToApi(payload) {
     name: payload.name,
     // si querés asegurar el slug auto desde el service:
     // slug: slugify(payload.name),
-    slug: payload.slug, 
     description: payload.description,
     price: Number(payload.price) || 0,
 
     // 🚫 ya no usamos imágenes de producto
     images: [],
-
+    currency: payload.currency,
     // ✅ enviar IDs, no strings
     variants: (payload.variants ?? []).map(v => ({
+      id: v.id ?? null, 
       colorId: v.colorId ?? null,
       sizeId:  v.sizeId  ?? null,
       sku: v.sku || "", // (ya lo generás auto en el form)
@@ -64,7 +63,10 @@ function mapAdminToApi(payload) {
 }
 
 /* ========= CATEGORÍAS ========= */
-
+export async function getDolarValue() {
+  const { data } = await axiosClient.get("/api/exchange-rate");
+  return data;
+}
 export async function getCategories() {
   const { data } = await axiosClient.get("/api/Categories");
   return data;

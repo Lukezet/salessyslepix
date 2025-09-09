@@ -1,13 +1,41 @@
 // Navbar.jsx
+import { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { useState } from "react";
 import { useCart } from "../store/cart";
 import { useAuth } from "../store/auth";
+import { getDolarValue } from "../services/catalog";
 import userIcon from "../assets/user.png"
 import userOut from "../assets/logout.png"
 import Login from "./auth/Login";
 
+
 export default function Navbar() {
+  const [usdRate, setUsdRate] = useState(null);
+
+useEffect(() => {
+  let alive = true;
+  (async () => {
+    try {
+      const { rate } = await getDolarValue();
+      if (alive) setUsdRate(rate);
+    } catch {
+      if (alive) setUsdRate(null);
+    }
+  })();
+
+  // opcional: refrescar cada X min (comenta si no lo querés)
+  // const id = setInterval(async () => {
+  //   try {
+  //     const { rate } = await getDolarValue();
+  //     if (alive) setUsdRate(rate);
+  //   } catch {}
+  // }, 10 * 60 * 1000);
+
+  return () => {
+    alive = false;
+    // clearInterval(id);
+  };
+}, []);
   const [open, setOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const [term, setTerm] = useState("");
@@ -65,8 +93,18 @@ export default function Navbar() {
           </svg>
           <span className="absolute top-4 -right-1 font-semibold text-xs rounded-full bg-green-900 text-white p-0.5 px-1">{total}</span>
         </NavLink>
-
-        {/* Hamburguesa */}
+        {canManage && (
+        <>
+          <span className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-lg border text-green-400 border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800">
+                  <span className="opacity-70">USD blue:</span>
+                  <strong className="tabular-nums">
+                    {usdRate != null
+                      ? usdRate.toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+                      : "…"}
+                  </strong>
+                </span>
+        </>)}
+        
         <button
           aria-label={open ? "Cerrar menú" : "Abrir menú"}
           aria-expanded={open}
@@ -85,11 +123,13 @@ export default function Navbar() {
         <nav className="hidden sm:flex gap-4 sm:gap-10 items-center font-semibold">
           <NavLink to="/" className="hover:scale-110 transition active:scale-90">Inicio</NavLink>
           {canManage && (
-    <>
-      <NavLink to="/ordersDashboard" className="hover:scale-110 transition active:scale-90">Ventas</NavLink>
-          <NavLink to="/admin" className="hover:scale-110 transition active:scale-90">Productos</NavLink>
-    </>
-  )}
+          <>
+            <NavLink to="/ordersDashboard" className="hover:scale-110 transition active:scale-90">Ventas</NavLink>
+
+                <NavLink to="/admin" className="hover:scale-110 transition active:scale-90">Productos</NavLink>
+
+          </>
+        )}
 
           
           <NavLink to="/cart" className="relative hover:scale-110 transition active:scale-90">

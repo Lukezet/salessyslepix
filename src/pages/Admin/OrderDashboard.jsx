@@ -311,7 +311,7 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
       </div>
 
       {/* Drawer: detalle */}
-      {selected && (
+      {selected  && ( 
         <div className="fixed inset-0 z-40">
           <div className="absolute inset-0 bg-black/30" onClick={() => setSelected(null)} />
           <div className="absolute right-0 top-0 h-full w-11/12 sm:w-[520px] bg-neutral-200 rounded-bl-4xl rounded-tl-2xl shadow-xl p-5 overflow-y-auto">
