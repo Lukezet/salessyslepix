@@ -65,7 +65,7 @@ console.log("renderhome")
                 />
                 <div className="absolute inset-0 bg-black/50 group-hover:bg-black/20 transition-colors" />
                 <div className="absolute bottom-0 left-0 right-0 p-3 text-white drop-shadow">
-                  <div className="font-medium">{c.name}</div>
+                  <div className="font-medium text-white">{c.name}</div>
                   <div className="text-xs opacity-90">{c.slug}</div>
                 </div>
               </div>

@@ -27,7 +27,9 @@
   padding: 10px 1rem;
   transition: 0.25s;
 }
-
+.inputRan:hover {
+  background-color: #fff
+}
 .inputRan:focus {
   outline-offset: 5px;
   background-color: #fff

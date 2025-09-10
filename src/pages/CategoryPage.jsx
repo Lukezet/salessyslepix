@@ -52,7 +52,18 @@ useEffect(() => {
 }, [cid]);
 
   if (notFound) return <p>Categoría no encontrada.</p>;
+const getThumbUrl = (p) => {
+  const bySort = (a, b) => (a?.sort ?? 0) - (b?.sort ?? 0);
+  console.log(p)
+  const defVar = p.variants?.find(v => v.isDefault) ?? p.variants?.[0];
+  const vImg = defVar?.images?.slice().sort(bySort)?.[0]?.url;
 
+  // fallback: primera variante (si no había default) y luego imágenes del producto
+  const anyVarImg = p.variants?.[0]?.images?.slice().sort(bySort)?.[0]?.url;
+  const prodImg = p.images?.slice().sort(bySort)?.[0]?.url;
+
+  return vImg || anyVarImg || prodImg || "/placeholder.png";
+};
   return (
     <section>
       <button
@@ -74,7 +85,7 @@ useEffect(() => {
 
       {/* Loading skeleton */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="relative h-36 md:h-44 rounded-lg overflow-hidden">
               <div className="absolute inset-0 animate-pulse bg-neutral-200" />
@@ -86,55 +97,51 @@ useEffect(() => {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
           {items.map((p) => {
-        const firstVariantImage = p.variants?.[0]?.images?.[0];
-          const bg = firstVariantImage ? `url(${firstVariantImage})` : "none";
+        // const firstVariantImage = p.variants?.[0]?.images?.[0];
+        //   const bg = firstVariantImage ? `url(${firstVariantImage})` : "none";
 
             return (
-              <Link
-                key={p.id}
-                to={`/product/${p.id}`} // si luego querés usar slug: `/product/${p.slug}`
-                className="relative h-36 md:h-44 rounded-lg p-4 hover:shadow-lg shadow-neutral-700 transition duration-150 ease-out overflow-hidden"
-              >
-                <div
-                  className="absolute inset-0 bg-center bg-cover rounded-lg"
-                  style={{ backgroundImage: bg }}
-                />
-                <div className="absolute flex w-full justify-between bg-neutral-100/50 bottom-0 left-0 right-0 p-3 drop-shadow rounded-t-3xl rounded-b-lg">
-                  <div>
-                    <div className="text-lg font-medium truncate w-52">{p.name}</div>
-                    <div className="text-sm">{formatPrice(p.price)}</div>
-                  </div>
-            <AddButton
-                product={{
-                  id: p.id,
-                  name: p.name,
-                  brandName: p.brandName,
-                  description: p.description,
-                  // Lo que realmente se usa al agregar:
-                  price: p.price,
-                  images: [firstVariantImage], // strings para tu Card/Cart
-                  // Datos de la variante seleccionada:
-                  variantId: p.variants?.[0]?.id ?? null,
-                  sku: p.variants?.[0]?.sku ?? null,
-                  colorId: p.variants?.[0]?.colorId ?? null,
-                  colorName: p.variants?.[0]?.colorName ?? null,
-                  colorHex: p.variants?.[0]?.colorHex ?? null,
-                  sizeId: p.variants?.[0]?.sizeId ?? null,
-                  sizeName: p.variants?.[0]?.sizeName ?? null,
-                  // Nombre “bonito” con atributos
-                  displayName:
-                    p.variants?.[0]
-                      ? `${p.name}${
-                          p.variants?.[0]?.colorName ? ` ${p.variants?.[0]?.colorName}` : ""
-                        }${p.variants?.[0]?.sizeName ? ` ${p.variants?.[0]?.sizeName}` : ""}`.trim()
-                      : p.name,
-                }}
-              />
-                  
-                </div>
-              </Link>
+         <Link key={p.id} to={`/product/${p.id}`} className="block inputRan rounded-xl p-3 hover:shadow">
+              <div className="aspect-square overflow-hidden rounded-lg bg-gray-50">
+            <img
+            src={getThumbUrl(p)}
+            alt={p.name}
+            className="w-full h-full object-cover"
+            />
+              </div>
+              <div className="mt-2 flex flex-col items-end">
+                <h3 className="text-sm font-medium line-clamp-2 self-start">{p.name}</h3>
+                <p className="text-sm text-gray-600 self-start">{formatPrice?.(p.price) ?? `$${p.price}`}</p>
+                <AddButton
+                                product={{
+                                  id: p.id,
+                                  name: p.name,
+                                  brandName: p.brandName,
+                                  description: p.description,
+                                  // Lo que realmente se usa al agregar:
+                                  price: p.price,
+                                  images: [getThumbUrl(p)], // strings para tu Card/Cart
+                                  // Datos de la variante seleccionada:
+                                  variantId: p.variants?.[0]?.id ?? null,
+                                  sku: p.variants?.[0]?.sku ?? null,
+                                  colorId: p.variants?.[0]?.colorId ?? null,
+                                  colorName: p.variants?.[0]?.colorName ?? null,
+                                  colorHex: p.variants?.[0]?.colorHex ?? null,
+                                  sizeId: p.variants?.[0]?.sizeId ?? null,
+                                  sizeName: p.variants?.[0]?.sizeName ?? null,
+                                  // Nombre “bonito” con atributos
+                                  displayName:
+                                    p.variants?.[0]
+                                      ? `${p.name}${
+                                          p.variants?.[0]?.colorName ? ` ${p.variants?.[0]?.colorName}` : ""
+                                        }${p.variants?.[0]?.sizeName ? ` ${p.variants?.[0]?.sizeName}` : ""}`.trim()
+                                      : p.name,
+                                }}
+                              />
+              </div>
+            </Link>
             );
           })}
         </div>
