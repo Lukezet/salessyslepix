@@ -30,19 +30,19 @@ export default function SearchPage() {
     run();
     return () => { cancel = true; };
   }, [q]);
-// arriba del return:
-const getThumbUrl = (p) => {
-  const bySort = (a, b) => (a?.sort ?? 0) - (b?.sort ?? 0);
+  // arriba del return:
+  const getThumbUrl = (p) => {
+    const bySort = (a, b) => (a?.sort ?? 0) - (b?.sort ?? 0);
 
-  const defVar = p.variants?.find(v => v.isDefault) ?? p.variants?.[0];
-  const vImg = defVar?.images?.slice().sort(bySort)?.[0]?.url;
+    const defVar = p.variants?.find(v => v.isDefault) ?? p.variants?.[0];
+    const vImg = defVar?.images?.slice().sort(bySort)?.[0]?.url;
 
-  // fallback: primera variante (si no había default) y luego imágenes del producto
-  const anyVarImg = p.variants?.[0]?.images?.slice().sort(bySort)?.[0]?.url;
-  const prodImg = p.images?.slice().sort(bySort)?.[0]?.url;
+    // fallback: primera variante (si no había default) y luego imágenes del producto
+    const anyVarImg = p.variants?.[0]?.images?.slice().sort(bySort)?.[0]?.url;
+    const prodImg = p.images?.slice().sort(bySort)?.[0]?.url;
 
-  return vImg || anyVarImg || prodImg || "/placeholder.png";
-};
+    return vImg || anyVarImg || prodImg || "/placeholder.png";
+  };
   return (
     <section className="p-4 space-y-4">
       <h1 className="text-xl font-semibold">Resultados para “{q}”</h1>

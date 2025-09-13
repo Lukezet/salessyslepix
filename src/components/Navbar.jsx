@@ -3,42 +3,39 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useCart } from "../store/cart";
 import { useAuth } from "../store/auth";
-import { getDolarValue } from "../services/catalog";
+import { useUsdRate } from "../store/usdRate";   
 import userIcon from "../assets/user.png"
 import userOut from "../assets/logout.png"
 import Login from "./auth/Login";
-
+import DolarRefreshModal from "./DolarRefreshModal";
 
 export default function Navbar() {
-  const [usdRate, setUsdRate] = useState(null);
-
-useEffect(() => {
-  let alive = true;
-  (async () => {
-    try {
-      const { rate } = await getDolarValue();
-      if (alive) setUsdRate(rate);
-    } catch {
-      if (alive) setUsdRate(null);
-    }
-  })();
-
-  // opcional: refrescar cada X min (comenta si no lo querés)
-  // const id = setInterval(async () => {
-  //   try {
-  //     const { rate } = await getDolarValue();
-  //     if (alive) setUsdRate(rate);
-  //   } catch {}
-  // }, 10 * 60 * 1000);
-
-  return () => {
-    alive = false;
-    // clearInterval(id);
-  };
-}, []);
   const [open, setOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const [term, setTerm] = useState("");
+
+  const { rate: usdRate, load, refresh } = useUsdRate();   // 👈 usa el store
+  const [openRefresh, setOpenRefresh] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      await load();                                        // 👈 carga inicial global
+    })();
+
+    // refresco opcional cada 1h (si querés)
+    const id = setInterval(() => { if (alive) load(); }, 60 * 60 * 1000);
+    return () => { alive = false; clearInterval(id); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const handleOpenModal = () => setOpenRefresh(true);
+  const handleCloseModal = () => setOpenRefresh(false);
+
+  const handleConfirmRefresh = async (optionalRate) => {
+    const res = await refresh(optionalRate ?? undefined);   // 👈 refresco global
+    return res; // el modal no necesita nada más, pero lo devolvemos igual
+  };
+
   const navigate = useNavigate();
   const total = useCart((s) => s.totalItems());
 
@@ -97,14 +94,31 @@ useEffect(() => {
         <>
           <span className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-lg border text-green-400 border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800">
                   <span className="opacity-70">USD blue:</span>
-                  <strong className="tabular-nums">
+                  <strong className="tabular-nums mr-1">
                     {usdRate != null
                       ? usdRate.toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })
                       : "…"}
                   </strong>
+                  <button
+                     onClick={handleOpenModal}
+                     className="border-1 rounded-md bg-neutral-700 hover:scale-110 cursor-pointer transition ease-out p-1"
+                    title="Modificar / Refrescar valor"
+                    aria-label="Modificar o refrescar dólar"
+                        >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  </svg>
+
+                  </button>
+
                 </span>
         </>)}
-        
+         {/* Modal */}
+          <DolarRefreshModal
+            open={openRefresh}
+            onClose={handleCloseModal}
+            onConfirm={handleConfirmRefresh}
+          />
         <button
           aria-label={open ? "Cerrar menú" : "Abrir menú"}
           aria-expanded={open}

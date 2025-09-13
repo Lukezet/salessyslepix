@@ -14,6 +14,7 @@ import {
   listColors,     // 👈 NUEVO
   listSizes,      // 👈 NUEVO
 } from "../../services/catalog";
+import { useUsdRate } from "../../store/usdRate";
 const CURRENCY = { USD: 1, ARS: 2 };
 // function slugify(str = "") {
 //   return String(str)
@@ -42,7 +43,7 @@ export default function ProductForm({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
-
+  const { rate: usdRate, load } = useUsdRate();
   const [brands, setBrands] = useState([]);
   const [cats, setCats] = useState([]);
   const [colors, setColors] = useState([]); // 👈 NUEVO
@@ -62,7 +63,15 @@ export default function ProductForm({
     variants: [], // [{ colorId, sizeId, sku, priceOverride, isDefault, images:[{url,sort}] }]
     currency: CURRENCY.USD
   }));
+useEffect(() => {
+  if (usdRate == null) load(); // asegura tener el valor
+}, [usdRate, load]);
 
+const priceNum = Number(form.price) || 0;
+const convertedArs =
+  form.currency === CURRENCY.USD && typeof usdRate === "number"
+    ? priceNum * usdRate
+    : null;
   // Cargar bases + producto
   useEffect(() => {
     let alive = true;
@@ -418,9 +427,25 @@ const save = async () => {
         <div>... (eliminado) ...</div>
         */}
         <div>
+          <div className="flex items-center">
           <label className="block text-sm font-medium">
             Precio base {form.currency === CURRENCY.USD ? "(USD)" : "(ARS)"}
           </label>
+          {form.currency === CURRENCY.USD && (
+              <p className="mt-1 text-xs text-zinc-600">
+                {typeof usdRate === "number"
+                  ? <>≈ ARS{" "}
+                      {convertedArs.toLocaleString("es-AR", {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2
+                      })}
+                      {" "}al dólar actual ({usdRate.toLocaleString("es-AR", { maximumFractionDigits: 2 })})
+                    </>
+                  : "Cargando cotización…"}
+              </p>
+            )}
+          </div>
+          
           <div className="flex gap-2">
             <input
               type="number"
@@ -438,6 +463,7 @@ const save = async () => {
               <option value={CURRENCY.USD}>USD</option>
               <option value={CURRENCY.ARS}>ARS</option>
             </select>
+            
           </div>
           <p className="mt-1 text-xs text-neutral-500">
             Los precios ingresados se interpretan en la moneda elegida. El cliente siempre ve ARS.

@@ -63,10 +63,7 @@ function mapAdminToApi(payload) {
 }
 
 /* ========= CATEGORÍAS ========= */
-export async function getDolarValue() {
-  const { data } = await axiosClient.get("/api/exchange-rate");
-  return data;
-}
+
 export async function getCategories() {
   const { data } = await axiosClient.get("/api/Categories");
   return data;
@@ -212,4 +209,18 @@ export function setAuthToken(token) {
   } else {
     delete axiosClient.defaults.headers.common["Authorization"];
   }
+}
+
+// ==== USD Dolars ====
+
+// Refresca contra la API o fija el valor manual si mandás { rate }
+export async function refreshDolarValue(rate) {
+  const payload = typeof rate === "number" && !Number.isNaN(rate) ? { rate } : undefined;
+  const { data } = await axiosClient.post("/api/exchange-rate/refresh", payload);
+  return data; // { rate, source }
+} 
+
+export async function getDolarValue() {
+  const { data } = await axiosClient.get("/api/exchange-rate");
+  return data;
 }
