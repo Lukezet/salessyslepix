@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getOrders, getOrdersSummary,deleteOrder,updateOrderState } from "../../services/catalog";
+import { formatDateTime } from "../../utils/formatDateTime";
 import StateDropdown from "../../components/StateDropDown";
 // ======================
 // Utils
@@ -7,8 +8,6 @@ import StateDropdown from "../../components/StateDropDown";
 const formatCurrency = (n) =>
   new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n || 0);
 
-const formatDateTime = (iso) =>
-  new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" }).format(new Date(iso));
 
 const stateColors = {
   Pending: "bg-yellow-100 text-yellow-800 ring-yellow-200",
@@ -328,18 +327,30 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
               </button>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-xl border p-3">
+            <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
+              <div className="rounded-xl border p-2 px-4">
                 <p className="text-gray-500">Cliente</p>
                 <p className="font-medium">{selected.customerName || "—"}</p>
               </div>
-              <div className="rounded-xl border p-3">
+              <div className="rounded-xl border p-2 px-4">
                 <p className="text-gray-500">Teléfono</p>
                 <p className="font-medium">{selected.customerPhone || "—"}</p>
               </div>
-              <div className="rounded-xl border p-3 col-span-2">
+              <div className="rounded-xl border p-2 px-4">
+                <p className="text-gray-500">Direccion</p>
+                <p className="font-medium">{selected.customerAddress || "—"}</p>
+              </div>
+              <div className="rounded-xl border p-2 px-4 col-span-3">
+                <p className="text-gray-500">Observaciones del cliente</p>
+                <p className="font-medium">{selected.customerObservations || "—"}</p>
+              </div>
+              <div className="rounded-xl border p-2 px-4  col-span-2">
                 <p className="text-gray-500">Total</p>
                 <p className="font-semibold">{formatCurrency(selected.total)}</p>
+              </div>
+              <div className="rounded-xl bg-neutral-800 border p-2 px-4  col-span-1">
+                <p className="text-gray-200">Cotizacion USD</p>
+                <p className="font-semibold text-green-400 ">{formatCurrency(selected.exchangeRateAtCreation)}</p>
               </div>
             </div>
 
@@ -350,6 +361,7 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
                   <thead className="bg-gray-50 text-left">
                     <tr>
                       <Th>Producto</Th>
+                      <Th>Marca</Th>
                       <Th className="text-right">Cant.</Th>
                       <Th className="text-right">P. Unit.</Th>
                       <Th className="text-right">Subtotal</Th>
@@ -359,6 +371,7 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
                     {(selected.details || []).map((d, idx) => (
                       <tr key={idx} className="border-t">
                         <Td className="max-w-[260px] truncate">{d.productName}</Td>
+                        <Td className="max-w-[260px] truncate">{d.brandName}</Td>
                         <Td className="text-right">{d.quantity}</Td>
                         <Td className="text-right">{formatCurrency(d.unitPrice)}</Td>
                         <Td className="text-right font-medium">{formatCurrency(d.totalPrice)}</Td>
