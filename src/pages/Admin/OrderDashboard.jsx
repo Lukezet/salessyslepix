@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { getOrders, getOrdersSummary,deleteOrder,updateOrderState } from "../../services/catalog";
+import { getOrders, getOrdersSummary, deleteOrder, updateOrderState, updateOrder, searchProducts2} from "../../services/catalog";
 import { formatDateTime } from "../../utils/formatDateTime";
 import StateDropdown from "../../components/StateDropDown";
 // ======================
@@ -27,6 +27,14 @@ const stateBg = {
 // Componente principal (100% JS, sin dependencias extras)
 // ======================
 export default function OrdersDashboard({ initialPageSize = 10, initialSearch = "", initialStateFilter = "" }) {
+    // Buscador de productos/variantes
+  const [prodQuery, setProdQuery] = useState("");
+  const [prodResults, setProdResults] = useState([]);
+  const [prodOpen, setProdOpen] = useState(false);
+  const [prodLoading, setProdLoading] = useState(false);
+  const [prodError, setProdError] = useState("");
+
+
   // Filtros y paginación
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(initialPageSize);
@@ -41,7 +49,10 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
   // Modales
   const [selected, setSelected] = useState(null); // para ver detalle
   const [confirmDelete, setConfirmDelete] = useState(null);
-
+  // Edición
+  const [editMode, setEditMode] = useState(false);
+  const [editModel, setEditModel] = useState(null);
+  const [saving, setSaving] = useState(false);
   // Resumen simple (últimos 30 días por defecto)
   const [summary, setSummary] = useState([]);
   const [summaryFrom, setSummaryFrom] = useState(() => new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
@@ -84,6 +95,100 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Construye el payload UpdateOrderDto según tu backend
+const buildUpdateDto = (m) => ({
+  customerName: m.customerName ?? "",
+  // customerEmail: m.customerEmail ?? "",
+  customerPhone: m.customerPhone ?? "",
+  customerAddress: m.customerAddress ?? "",
+  customerObservations: m.customerObservations ?? "",
+  paymentMethod: m.paymentMethod ?? "Efectivo",
+  paymentAmount: m.paymentAmount !== "" && m.paymentAmount != null ? Number(m.paymentAmount) : null,
+  discountAmount: m.discountAmount !== "" && m.discountAmount != null ? Number(m.discountAmount) : null,
+  discountPercent: m.discountPercent !== "" && m.discountPercent != null ? Number(m.discountPercent) : null,
+  refreshExchangeRate: !!m.refreshExchangeRate,
+  exchangeRateOverride: m.exchangeRateOverride !== "" && m.exchangeRateOverride != null ? Number(m.exchangeRateOverride) : null,
+  details: (m.details || []).map(d => ({
+    id: d.id || 0,
+    productVariantId: Number(d.productVariantId),
+    quantity: Number(d.quantity),
+    note: d.note ?? null,
+    // si está vacío/no numérico => null para que el backend recalcule
+    unitPriceOverride: d.unitPriceOverride !== "" && d.unitPriceOverride != null
+      ? Number(d.unitPriceOverride)
+      : null
+  }))
+});
+
+// Prepara un modelo editable desde `selected`
+const makeEditable = (o) => ({
+  id: o.id,
+  customerName: o.customerName || "",
+  // customerEmail: o.customerEmail || "",
+  customerPhone: o.customerPhone || "",
+  customerAddress: o.customerAddress || "",
+  customerObservations: o.customerObservations || "",
+  paymentMethod: o.paymentMethod || "Efectivo",
+  paymentAmount: o.paymentAmount ?? "",
+
+  discountAmount: o.discountAmount ?? "",
+  discountPercent: "",
+
+  refreshExchangeRate: false,
+  exchangeRateOverride: "",
+
+  details: (o.details || []).map(d => ({
+    id: d.id,                            // <- debe venir en tu DTO
+    productVariantId: d.productVariantId, // <- debe venir en tu DTO
+    productName: d.productName,
+    brandName: d.brandName,
+    quantity: d.quantity,
+    note: d.note ?? "",
+    unitPriceOverride: "" // por defecto vacío: si el user no escribe, el backend recalcula con FX
+  }))
+});
+// lanzar búsqueda
+const doProductSearch = async () => {
+  const q = (prodQuery || "").trim();
+  setProdError(""); setProdLoading(true);
+  try {
+    const items = await searchProducts2(q);
+    setProdResults(items);
+    setProdOpen(true);
+  } catch (e) {
+    setProdError(e?.message || "No se pudo buscar productos");
+    setProdResults([]);
+    setProdOpen(true);
+  } finally {
+    setProdLoading(false);
+  }
+};
+
+// agregar variante seleccionada (Id=0 para que el backend la cree)
+const onPickVariant = (product, variant) => {
+  if (!editModel) return;
+  setEditModel(m => ({
+    ...m,
+    details: [
+      ...(m.details || []),
+      {
+        id: 0,
+        productVariantId: variant.id,
+        productName: product.name,
+        brandName: product.brandName,
+        quantity: 1,
+        note: "",
+        unitPriceOverride: "" // vacío => que recalculen por FX
+      }
+    ]
+  }));
+  setProdOpen(false);
+  setProdQuery("");
+  setProdResults([]);
+};
+
+// cerrar panel al hacer click afuera
+const closeProductPanel = () => { setProdOpen(false); };
   // KPIs de la página actual (no de todo el histórico)
   const kpis = useMemo(() => {
     if (!data?.items) return { totalOrders: 0, totalAmount: 0, pending: 0, delivered: 0 };
@@ -95,6 +200,57 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
   }, [data]);
 
   // Acciones
+
+  const onStartEdit = () => {
+  setEditModel(makeEditable(selected));
+  setEditMode(true);
+  };
+
+  const onCancelEdit = () => {
+    setEditMode(false);
+    setEditModel(null);
+  };
+
+  const onSaveEdit = async () => {
+    if (!selected || !editModel) return;
+    try {
+      setSaving(true);
+      const ok = await updateOrder(selected.id, buildUpdateDto(editModel));
+      if (!ok) {
+        alert("No se actualizaron cambios.");
+        return;
+      }
+      // Refresh listado + resumen y cerrar panel
+      const payload = await getOrders(page, pageSize, searchTerm, stateFilter);
+      setData(payload);
+      await loadSummary();
+      setEditMode(false);
+      setEditModel(null);
+      setSelected(null);
+    } catch (e) {
+      alert(e?.message || "No se pudo guardar la orden");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Detalle: helpers para modificar filas
+  const updateRow = (idx, patch) => {
+    setEditModel(m => {
+      const copy = { ...m, details: [...m.details] };
+      copy.details[idx] = { ...copy.details[idx], ...patch };
+      return copy;
+    });
+  };
+
+  const removeRow = (idx) => {
+    // regla backend: quantity=0 => eliminar
+    updateRow(idx, { quantity: 0 });
+  };
+
+
+
+
   const onChangeState = async (order, newState) => {
     console.log(newState)
     if (!order || order.state === newState) return;
@@ -310,100 +466,349 @@ export default function OrdersDashboard({ initialPageSize = 10, initialSearch = 
       </div>
 
       {/* Drawer: detalle */}
-      {selected  && ( 
-        <div className="fixed inset-0 z-40">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setSelected(null)} />
-          <div className="absolute right-0 top-0 h-full w-11/12 sm:w-[520px] bg-neutral-200 rounded-bl-4xl rounded-tl-2xl shadow-xl p-5 overflow-y-auto">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-semibold">Orden #{selected.id}</h3>
-                <p className="text-sm text-gray-500">{formatDateTime(selected.createdAt)}</p>
-                <div className={`mt-2 inline-flex items-center gap-2 rounded-full px-2.5 py-1 ring-1 ${stateColors[selected.state] || "bg-gray-100 text-gray-700 ring-gray-200"}`}>
-                  <span className="text-xs font-medium">{selected.state}</span>
-                </div>
-              </div>
-              <button className="px-2.5 py-1.5 rounded-xl border text-xs btn-danger" onClick={() => setSelected(null)}>
-                Cerrar
+{selected  && ( 
+  <div className="fixed inset-0 z-40">
+    <div className="absolute inset-0 bg-black/30" onClick={() => { setSelected(null); setEditMode(false); setEditModel(null); }} />
+    <div className="absolute right-0 top-0 h-full w-11/12 sm:w-[620px] bg-neutral-200 rounded-bl-4xl rounded-tl-2xl shadow-xl p-5 overflow-y-auto">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold">Orden #{selected.id}</h3>
+          <p className="text-sm text-gray-500">{formatDateTime(selected.createdAt)}</p>
+          <div className={`mt-2 inline-flex items-center gap-2 rounded-full px-2.5 py-1 ring-1 ${stateColors[selected.state] || "bg-gray-100 text-gray-700 ring-gray-200"}`}>
+            <span className="text-xs font-medium">{selected.state}</span>
+          </div>
+        </div>
+        <div className="flex gap-2">
+            {!editMode ? (
+              <button className="px-2.5 py-1.5 rounded-xl border text-xs btn-custom hover:bg-gray-50" onClick={onStartEdit}>
+                Editar
               </button>
-            </div>
+            ) : (
+              <>
+                <button disabled={saving} className="px-2.5 py-1.5 rounded-xl border text-xs hover:bg-gray-50 btn-custom" onClick={onSaveEdit}>
+                  {saving ? "Guardando..." : "Guardar"}
+                </button>
+                <button className="px-2.5 py-1.5 rounded-xl border text-xs btn-danger" onClick={onCancelEdit}>
+                  Cancelar
+                </button>
+              </>
+            )}
+          <button className="px-2.5 py-1.5 rounded-xl border text-xs btn-danger" onClick={() => { setSelected(null); setEditMode(false); setEditModel(null); }}>
+            Cerrar
+          </button>
+        </div>
+      </div>
 
-            <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
-              <div className="rounded-xl border p-2 px-4">
-                <p className="text-gray-500">Cliente</p>
-                <p className="font-medium">{selected.customerName || "—"}</p>
-              </div>
-              <div className="rounded-xl border p-2 px-4">
-                <p className="text-gray-500">Teléfono</p>
-                <p className="font-medium">{selected.customerPhone || "—"}</p>
-              </div>
-              <div className="rounded-xl border p-2 px-4">
-                <p className="text-gray-500">Direccion</p>
-                <p className="font-medium">{selected.customerAddress || "—"}</p>
-              </div>
-              <div className="rounded-xl border p-2 px-4 col-span-3">
-                <p className="text-gray-500">Observaciones del cliente</p>
-                <p className="font-medium">{selected.customerObservations || "—"}</p>
-              </div>
-              <div className="rounded-xl border p-2 px-4  col-span-2">
-                <p className="text-gray-500">Total</p>
-                <p className="font-semibold">{formatCurrency(selected.total)}</p>
-              </div>
-              <div className="rounded-xl bg-neutral-800 border p-2 px-4  col-span-1">
-                <p className="text-gray-200">Cotizacion USD</p>
-                <p className="font-semibold text-green-400 ">{formatCurrency(selected.exchangeRateAtCreation)}</p>
-              </div>
+      {/* Cabecera: Ver vs Editar */}
+      {!editMode ? (
+        <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
+          <div className="rounded-xl border p-2 px-4">
+            <p className="text-gray-500">Cliente</p>
+            <p className="font-medium">{selected.customerName || "—"}</p>
+          </div>
+          <div className="rounded-xl border p-2 px-4">
+            <p className="text-gray-500">Teléfono</p>
+            <p className="font-medium">{selected.customerPhone || "—"}</p>
+          </div>
+          <div className="rounded-xl border p-2 px-4">
+            <p className="text-gray-500">Direccion</p>
+            <p className="font-medium">{selected.customerAddress || "—"}</p>
+          </div>
+          <div className="rounded-xl border p-2 px-4 col-span-3">
+            <p className="text-gray-500">Observaciones del cliente</p>
+            <p className="font-medium">{selected.customerObservations || "—"}</p>
+          </div>
+          <div className="rounded-xl border p-2 px-4  col-span-2">
+            <p className="text-gray-500">Total</p>
+            <p className="font-semibold">{formatCurrency(selected.total)}</p>
+          </div>
+          <div className="rounded-xl bg-neutral-800 border p-2 px-4  col-span-1">
+            <p className="text-gray-200">Cotizacion USD</p>
+            <p className="font-semibold text-green-400 ">{formatCurrency(selected.exchangeRateAtCreation)}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
+          <label className="rounded-xl border p-2 px-4 flex flex-col">
+            <span className="text-gray-500">Cliente</span>
+            <input className="" value={editModel.customerName} onChange={e => setEditModel(m => ({...m, customerName: e.target.value}))} />
+          </label>
+          <label className="rounded-xl border p-2 px-4 flex flex-col">
+            <span className="text-gray-500">Teléfono</span>
+            <input className="" value={editModel.customerPhone} onChange={e => setEditModel(m => ({...m, customerPhone: e.target.value}))} />
+          </label>
+          <label className="rounded-xl border p-2 px-4 flex flex-col">
+            <span className="text-gray-500">Dirección</span>
+            <input className="" value={editModel.customerAddress} onChange={e => setEditModel(m => ({...m, customerAddress: e.target.value}))} />
+          </label>
+          {/* <label className="rounded-xl border p-2 px-4 flex flex-col col-span-3">
+            <span className="text-gray-500">Email</span>
+            <input className="" value={editModel.customerEmail} onChange={e => setEditModel(m => ({...m, customerEmail: e.target.value}))} />
+          </label> */}
+          <label className="rounded-xl border p-2 px-4 flex flex-col col-span-3">
+            <span className="text-gray-500">Observaciones</span>
+            <textarea className="" rows={2} value={editModel.customerObservations} onChange={e => setEditModel(m => ({...m, customerObservations: e.target.value}))} />
+          </label>
+          <label className="rounded-xl border p-2 px-4 flex flex-col">
+            <span className="text-gray-500">Método de pago</span>
+            <input className="" value={editModel.paymentMethod} onChange={e => setEditModel(m => ({...m, paymentMethod: e.target.value}))} />
+          </label>
+          <label className="rounded-xl border p-2 px-4 flex flex-col">
+            <span className="text-gray-500">Monto pagado (ARS)</span>
+            <input type="number" step="0.01" className="" value={editModel.paymentAmount} onChange={e => setEditModel(m => ({...m, paymentAmount: e.target.value}))} />
+          </label>
+          <div className="rounded-xl border p-2 px-4 col-span-1">
+            <div className="flex items-center gap-2">
+              <input id="fxrefresh" type="checkbox" checked={!!editModel.refreshExchangeRate} onChange={e => setEditModel(m => ({...m, refreshExchangeRate: e.target.checked}))} />
+              <label htmlFor="fxrefresh" className="text-xs">Refrescar cotización</label>
             </div>
+            <label className="mt-2 block">
+              <span className="text-gray-500 text-xs">cotizacion personalizada</span>
+              <input type="number" step="0.01" className="" value={editModel.exchangeRateOverride} onChange={e => setEditModel(m => ({...m, exchangeRateOverride: e.target.value}))} />
+            </label>
+          </div>
+          <label className="rounded-xl border p-2 px-4 flex flex-col">
+            <span className="text-gray-500">Descuento (ARS)</span>
+            <input type="number" step="0.01" className="" value={editModel.discountAmount} onChange={e => setEditModel(m => ({...m, discountAmount: e.target.value, discountPercent: ""}))} />
+          </label>
+          <label className="rounded-xl border p-2 px-4 flex flex-col">
+            <span className="text-gray-500">Descuento (%)</span>
+            <input type="number" step="0.01" className="" value={editModel.discountPercent} onChange={e => setEditModel(m => ({...m, discountPercent: e.target.value, discountAmount: ""}))} />
+          </label>
+        </div>
+      )}
 
-            <div className="mt-6">
-              <h4 className="font-semibold mb-2">Detalle</h4>
-              <div className="rounded-xl border overflow-hidden">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-gray-50 text-left">
-                    <tr>
-                      <Th>Producto</Th>
-                      <Th>Marca</Th>
-                      <Th className="text-right">Cant.</Th>
-                      <Th className="text-right">P. Unit.</Th>
-                      <Th className="text-right">Subtotal</Th>
+      {/* Detalle */}
+      {!editMode ? (
+        <>
+          <div className="mt-6">
+            <h4 className="font-semibold mb-2">Detalle</h4>
+            <div className="rounded-xl border overflow-hidden">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50 text-left">
+                  <tr>
+                    <Th>Producto</Th>
+                    <Th>Marca</Th>
+                    <Th className="text-right">Cant.</Th>
+                    <Th className="text-right">P. Unit.</Th>
+                    <Th className="text-right">Subtotal</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(selected.details || []).map((d, idx) => (
+                    <tr key={idx} className="border-t">
+                      <Td className="max-w-[260px] truncate">{d.productName}</Td>
+                      <Td className="max-w-[260px] truncate">{d.brandName}</Td>
+                      <Td className="text-right">{d.quantity}</Td>
+                      <Td className="text-right">{formatCurrency(d.unitPrice)}</Td>
+                      <Td className="text-right font-medium">{formatCurrency(d.totalPrice)}</Td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {(selected.details || []).map((d, idx) => (
-                      <tr key={idx} className="border-t">
-                        <Td className="max-w-[260px] truncate">{d.productName}</Td>
-                        <Td className="max-w-[260px] truncate">{d.brandName}</Td>
-                        <Td className="text-right">{d.quantity}</Td>
-                        <Td className="text-right">{formatCurrency(d.unitPrice)}</Td>
-                        <Td className="text-right font-medium">{formatCurrency(d.totalPrice)}</Td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
-
-            <div className="mt-6 flex-col items-end justify-end">
-              <div className="flex gap-2">
-                {["Pending", "Approved", "Delivered", "Cancelled"].map((st) => (
+          </div>
+        </>
+       ) : (
+  <>
+    <div className="mt-6">
+      <h4 className="font-semibold mb-2">Detalle (editable)</h4>
+      <div className="rounded-xl border overflow-x-auto">
+        <table className="text-sm w-max min-w-[900px]">
+          <thead className="bg-gray-50 text-left whitespace-nowrap">
+            <tr>
+              <Th>Producto</Th>
+              <Th>Marca</Th>
+              <Th className="text-right">Cant.</Th>
+              <Th className="text-right">UnitPrice Override</Th>
+              <Th>Nota</Th>
+              <Th></Th>
+            </tr>
+          </thead>
+          <tbody>
+            {(editModel?.details ?? []).map((d, idx) => (
+              <tr key={idx} className={`border-t ${Number(d.quantity) === 0 ? "opacity-50 line-through" : ""}`}>
+                <Td className="max-w-[220px] truncate">{d.productName || `#${d.productVariantId}`}</Td>
+                <Td className="max-w-[200px] truncate">{d.brandName || "—"}</Td>
+                <Td className="text-right">
+                  <input
+                    type="number"
+                    min="0"
+                    className="inputRan w-20 text-right"
+                    value={d.quantity ?? 0}
+                    onChange={(e) => updateRow(idx, { quantity: e.target.value })}
+                  />
+                </Td>
+                <Td className="text-right">
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="inputRan w-28 text-right"
+                    placeholder="(auto)"
+                    value={d.unitPriceOverride ?? ""}
+                    onChange={(e) => updateRow(idx, { unitPriceOverride: e.target.value })}
+                  />
+                </Td>
+                <Td>
+                  <input
+                    className="inputRan w-full"
+                    value={d.note ?? ""}
+                    onChange={(e) => updateRow(idx, { note: e.target.value })}
+                  />
+                </Td>
+                <Td className="text-right">
                   <button
-                    key={st}
-                    className={`px-3 py-1.5 rounded-xl border text-xs ${st === selected.state ? "bg-gray-50" : "hover:bg-gray-50"}`}
-                    onClick={() => onChangeState(selected, st)}
+                    className="px-2 py-1 rounded-lg border text-xs hover:bg-rose-50 hover:text-rose-600"
+                    onClick={() => removeRow(idx)}
                   >
-                    {st}
+                    Quitar
                   </button>
-                ))}
-              </div>
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Buscar y agregar producto/variante */}
+      <div className="mt-6">
+        <h4 className="font-semibold mb-2">Agregar ítem</h4>
+
+        <div className="relative">
+          <div className="rounded-xl border p-2 grid grid-cols-5 gap-3 items-end bg-white">
+              <label className="col-span-4 text-xs mb-2">
+              <span className="text-gray-500">Buscar producto</span>
+              <input
+                className="inputRan w-full"
+                placeholder="Ej: Nokia 2660, A15, Dell Pro…"
+                value={prodQuery ?? ""}
+                onChange={(e) => setProdQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") doProductSearch();
+                }}
+              />
+            </label>
+            <div className="col-span-1 flex justify-end">
               <button
-                className="mt-3 px-3 py-1.5 rounded-xl border text-xs hover:bg-rose-50 btn-danger"
-                onClick={() => setConfirmDelete(selected)}
+                className="px-3 py-2 rounded-xl border text-sm btn-custom hover:bg-gray-50 w-full"
+                onClick={doProductSearch}
+                disabled={!!prodLoading}
+                aria-label="Buscar productos"
               >
-                Eliminar orden
+                {prodLoading ? "Buscando…" : "Buscar"}
               </button>
             </div>
           </div>
+
+          {/* Panel de resultados */}
+          {prodOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={closeProductPanel} />
+              <div className="absolute z-50 mt-2 w-full rounded-2xl border shadow-xl bg-neutral-50">
+                <div className="flex items-center justify-between px-3 py-2 border-b">
+                  <p className="text-sm font-medium">
+                    Resultados {prodLoading ? "(cargando…)" : `(${(prodResults ?? []).length})`}
+                  </p>
+                  <button className="text-xs px-2 py-1 rounded-lg border hover:bg-gray-100" onClick={closeProductPanel}>
+                    Cerrar
+                  </button>
+                </div>
+
+                {prodError && <p className="p-3 text-sm text-rose-600">{prodError}</p>}
+
+                <div className="max-h-[380px] overflow-auto p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {(prodResults ?? []).map((p) => {
+                    const firstImg = p?.variants?.[0]?.images?.[0]?.url;
+                    return (
+                      <div key={p.id} className="rounded-xl border bg-white overflow-hidden hover:shadow transition">
+                        <div className="flex gap-3 p-3">
+                          <div className="w-16 h-16 rounded-lg bg-gray-100 overflow-hidden shrink-0">
+                            {firstImg ? (
+                              <img src={firstImg} alt={p.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full grid place-content-center text-gray-400 text-xs">Sin img</div>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs text-gray-500">{p.brandName || "—"}</p>
+                            <p className="text-sm font-medium truncate" title={p.name}>
+                              {p.name}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="border-t bg-neutral-50 p-2">
+                          {(!p.variants || p.variants.length === 0) && (
+                            <p className="text-xs text-gray-500 px-2 py-1">Sin variantes disponibles</p>
+                          )}
+                          <ul className="space-y-1">
+                            {(p.variants ?? []).map((v) => (
+                              <li
+                                key={v.id}
+                                className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg hover:bg-neutral-100"
+                              >
+                                <div className="min-w-0">
+                                  <p className="text-xs text-gray-700 truncate" title={v.sku}>
+                                    {v.sku}
+                                  </p>
+                                  {typeof v.price === "number" && (
+                                    <p className="text-[11px] text-gray-500">Base: {formatCurrency(v.price)}</p>
+                                  )}
+                                </div>
+                                <button
+                                  className="px-2 py-1 rounded-lg border text-xs hover:bg-gray-50"
+                                  onClick={() => onPickVariant(p, v)}
+                                  aria-label={`Agregar variante ${v.id}`}
+                                >
+                                  Agregar
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {!prodLoading && (prodResults ?? []).length === 0 && !prodError && (
+                    <div className="col-span-full text-sm text-gray-500 px-1 py-2">No se encontraron productos.</div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+    </>
+    )
+    }
+
+      {/* Acciones de estado + eliminar (se mantienen) */}
+      {!editMode && (
+        <div className="mt-6 flex-col items-end justify-end">
+          <div className="flex gap-2">
+            {["Pending", "Approved", "Delivered", "Cancelled"].map((st) => (
+              <button
+                key={st}
+                className={`px-3 py-1.5 rounded-xl border text-xs ${st === selected.state ? "bg-gray-50" : "hover:bg-gray-50"}`}
+                onClick={() => onChangeState(selected, st)}
+              >
+                {st}
+              </button>
+            ))}
+          </div>
+          <button
+            className="mt-3 px-3 py-1.5 rounded-xl border text-xs hover:bg-rose-50 btn-danger"
+            onClick={() => setConfirmDelete(selected)}
+          >
+            Eliminar orden
+          </button>
         </div>
       )}
+    </div>
+  </div>
+)}
 
       {/* Confirmación de borrado */}
       {confirmDelete && (

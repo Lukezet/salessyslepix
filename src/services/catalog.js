@@ -105,6 +105,11 @@ export async function searchProducts({ q }) {
   const { data } = await axiosClient.get(`/api/Products/search?${params}`); // ← ajustá esto
   return data;
 }
+
+export async function searchProducts2(q) {
+  const { data } = await axiosClient.get('/api/Products/search', { params: { q } });
+  return Array.isArray(data) ? data : [];
+}
 /* ========= PRODUCTOS (ADMIN) ========= */
 // Estos no transforman a string[] y envían el DTO correcto
 
@@ -172,12 +177,14 @@ export async function getEmpresaPhoneNumber() {
 }
 
 // ======================
-// API (formato axiosClient.get/post/put/delete)
+// ORDERS
 // ======================
 export async function getOrders(page = 1, pageSize = 10, searchTerm = "", stateFilter = "") {
+  
   const { data } = await axiosClient.get("/api/orders", {
     params: { page, pageSize, searchTerm, stateFilter },
   });
+  console.log(data)
   return data;
 }
 
@@ -194,8 +201,14 @@ export async function updateOrderState(id, newState) {
 
 export async function deleteOrder(id) {
   await axiosClient.delete(`/api/orders/${id}`);
-}
 
+}
+export async function updateOrder(orderId, payload) {
+  console.log("Updateamos a :",payload)
+  const { data } = await axiosClient.put(`/api/orders/${orderId}`, payload);
+  // Opción A del endpoint: { updated: boolean }
+  return data?.updated ?? false;
+}
 
 // === AUTH ===
 export async function authLogin({ email, password }) {

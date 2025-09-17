@@ -92,7 +92,7 @@ export default function Navbar() {
         </NavLink>
         {canManage && (
         <>
-          <span className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-lg border text-green-400 border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800">
+          <span className="inline-flex items-center gap-1 text-xs sm:text-sm pl-1 sm:px-2 sm:py-1 rounded-lg border text-green-400 border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800">
                   <span className="opacity-70">USD blue:</span>
                   <strong className="tabular-nums mr-1">
                     {usdRate != null
