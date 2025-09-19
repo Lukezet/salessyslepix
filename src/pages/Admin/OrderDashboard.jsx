@@ -182,9 +182,7 @@ const onPickVariant = (product, variant) => {
       }
     ]
   }));
-  setProdOpen(false);
-  setProdQuery("");
-  setProdResults([]);
+
 };
 
 // cerrar panel al hacer click afuera
@@ -469,7 +467,7 @@ const closeProductPanel = () => { setProdOpen(false); };
 {selected  && ( 
   <div className="fixed inset-0 z-40">
     <div className="absolute inset-0 bg-black/30" onClick={() => { setSelected(null); setEditMode(false); setEditModel(null); }} />
-    <div className="absolute right-0 top-0 h-full w-11/12 sm:w-[620px] bg-neutral-200 rounded-bl-4xl rounded-tl-2xl shadow-xl p-5 overflow-y-auto">
+    <div className="absolute right-0 top-0 h-full w-11/12 sm:w-[620px] bg-white rounded-bl-4xl border-l-4 border-amber-400 rounded-l-4xl shadow-xl p-5 overflow-y-auto">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold">Orden #{selected.id}</h3>
@@ -501,43 +499,43 @@ const closeProductPanel = () => { setProdOpen(false); };
 
       {/* Cabecera: Ver vs Editar */}
       {!editMode ? (
-        <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
-          <div className="rounded-xl border p-2 px-4">
+        <div className="mt-4 grid  grid-cols-3 gap-3 text-sm">
+          <div className="rounded-xl border panel-customLight-lite p-2 px-4">
             <p className="text-gray-500">Cliente</p>
             <p className="font-medium">{selected.customerName || "—"}</p>
           </div>
-          <div className="rounded-xl border p-2 px-4">
+          <div className="rounded-xl panel-customLight-lite  border p-2 px-4">
             <p className="text-gray-500">Teléfono</p>
             <p className="font-medium">{selected.customerPhone || "—"}</p>
           </div>
-          <div className="rounded-xl border p-2 px-4">
+          <div className="rounded-xl panel-customLight-lite  border p-2 px-4">
             <p className="text-gray-500">Direccion</p>
             <p className="font-medium">{selected.customerAddress || "—"}</p>
           </div>
-          <div className="rounded-xl border p-2 px-4 col-span-3">
+          <div className="rounded-xl panel-customLight-lite  border p-2 px-4 col-span-3">
             <p className="text-gray-500">Observaciones del cliente</p>
             <p className="font-medium">{selected.customerObservations || "—"}</p>
           </div>
-          <div className="rounded-xl border p-2 px-4  col-span-2">
+          <div className="rounded-xl panel-customLight-lite  border p-2 px-4  col-span-2">
             <p className="text-gray-500">Total</p>
             <p className="font-semibold">{formatCurrency(selected.total)}</p>
           </div>
-          <div className="rounded-xl bg-neutral-800 border p-2 px-4  col-span-1">
+          <div className="rounded-xl panel-custom-lite p-2 px-4  col-span-1">
             <p className="text-gray-200">Cotizacion USD</p>
             <p className="font-semibold text-green-400 ">{formatCurrency(selected.exchangeRateAtCreation)}</p>
           </div>
         </div>
       ) : (
         <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
-          <label className="rounded-xl border p-2 px-4 flex flex-col">
+          <label className="rounded-xl  panel-customLight  p-2 px-4 flex flex-col ">
             <span className="text-gray-500">Cliente</span>
             <input className="" value={editModel.customerName} onChange={e => setEditModel(m => ({...m, customerName: e.target.value}))} />
           </label>
-          <label className="rounded-xl border p-2 px-4 flex flex-col">
+          <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col">
             <span className="text-gray-500">Teléfono</span>
             <input className="" value={editModel.customerPhone} onChange={e => setEditModel(m => ({...m, customerPhone: e.target.value}))} />
           </label>
-          <label className="rounded-xl border p-2 px-4 flex flex-col">
+          <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col">
             <span className="text-gray-500">Dirección</span>
             <input className="" value={editModel.customerAddress} onChange={e => setEditModel(m => ({...m, customerAddress: e.target.value}))} />
           </label>
@@ -545,33 +543,33 @@ const closeProductPanel = () => { setProdOpen(false); };
             <span className="text-gray-500">Email</span>
             <input className="" value={editModel.customerEmail} onChange={e => setEditModel(m => ({...m, customerEmail: e.target.value}))} />
           </label> */}
-          <label className="rounded-xl border p-2 px-4 flex flex-col col-span-3">
+          <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col col-span-3">
             <span className="text-gray-500">Observaciones</span>
             <textarea className="" rows={2} value={editModel.customerObservations} onChange={e => setEditModel(m => ({...m, customerObservations: e.target.value}))} />
           </label>
-          <label className="rounded-xl border p-2 px-4 flex flex-col">
+          <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col">
             <span className="text-gray-500">Método de pago</span>
             <input className="" value={editModel.paymentMethod} onChange={e => setEditModel(m => ({...m, paymentMethod: e.target.value}))} />
           </label>
-          <label className="rounded-xl border p-2 px-4 flex flex-col">
+          <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col">
             <span className="text-gray-500">Monto pagado (ARS)</span>
             <input type="number" step="0.01" className="" value={editModel.paymentAmount} onChange={e => setEditModel(m => ({...m, paymentAmount: e.target.value}))} />
           </label>
-          <div className="rounded-xl border p-2 px-4 col-span-1">
+          <div className="rounded-xl panel-customLight p-2 px-4 col-span-1">
             <div className="flex items-center gap-2">
-              <input id="fxrefresh" type="checkbox" checked={!!editModel.refreshExchangeRate} onChange={e => setEditModel(m => ({...m, refreshExchangeRate: e.target.checked}))} />
-              <label htmlFor="fxrefresh" className="text-xs">Refrescar cotización</label>
+              <input className="text-green-400 bg-green-400  accent-green-400" id="fxrefresh" type="checkbox" checked={!!editModel.refreshExchangeRate} onChange={e => setEditModel(m => ({...m, refreshExchangeRate: e.target.checked}))} />
+              <label htmlFor="fxrefresh" className="text-xs text-green-400">Refrescar cotización</label>
             </div>
-            <label className="mt-2 block">
+            <label className="mt-2  block">
               <span className="text-gray-500 text-xs">cotizacion personalizada</span>
-              <input type="number" step="0.01" className="" value={editModel.exchangeRateOverride} onChange={e => setEditModel(m => ({...m, exchangeRateOverride: e.target.value}))} />
+              <input type="number" step="0.01" className="panel-customLight w-24" value={editModel.exchangeRateOverride} onChange={e => setEditModel(m => ({...m, exchangeRateOverride: e.target.value}))} />
             </label>
           </div>
-          <label className="rounded-xl border p-2 px-4 flex flex-col">
+          <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col">
             <span className="text-gray-500">Descuento (ARS)</span>
             <input type="number" step="0.01" className="" value={editModel.discountAmount} onChange={e => setEditModel(m => ({...m, discountAmount: e.target.value, discountPercent: ""}))} />
           </label>
-          <label className="rounded-xl border p-2 px-4 flex flex-col">
+          <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col">
             <span className="text-gray-500">Descuento (%)</span>
             <input type="number" step="0.01" className="" value={editModel.discountPercent} onChange={e => setEditModel(m => ({...m, discountPercent: e.target.value, discountAmount: ""}))} />
           </label>
@@ -583,9 +581,9 @@ const closeProductPanel = () => { setProdOpen(false); };
         <>
           <div className="mt-6">
             <h4 className="font-semibold mb-2">Detalle</h4>
-            <div className="rounded-xl border overflow-hidden">
+            <div className="rounded-xl shadow-lg shadow-neutral-800 overflow-hidden">
               <table className="min-w-full text-sm">
-                <thead className="bg-gray-50 text-left">
+                <thead className="bg-neutral-800 border-y-2 border-amber-400  text-white text-left">
                   <tr>
                     <Th>Producto</Th>
                     <Th>Marca</Th>
@@ -613,9 +611,9 @@ const closeProductPanel = () => { setProdOpen(false); };
   <>
     <div className="mt-6">
       <h4 className="font-semibold mb-2">Detalle (editable)</h4>
-      <div className="rounded-xl border overflow-x-auto">
-        <table className="text-sm w-max min-w-[900px]">
-          <thead className="bg-gray-50 text-left whitespace-nowrap">
+      <div className="rounded-2xl shadow-lg  shadow-neutral-400 overflow-x-auto">
+        <table className="text-sm w-max min-w-[900px] bg-white shadow-lg">
+          <thead className="bg-neutral-800 border-y-2 border-amber-400  text-white text-left whitespace-nowrap">
             <tr>
               <Th>Producto</Th>
               <Th>Marca</Th>
@@ -634,7 +632,7 @@ const closeProductPanel = () => { setProdOpen(false); };
                   <input
                     type="number"
                     min="0"
-                    className="inputRan w-20 text-right"
+                    className="w-12 text-right"
                     value={d.quantity ?? 0}
                     onChange={(e) => updateRow(idx, { quantity: e.target.value })}
                   />
@@ -643,7 +641,7 @@ const closeProductPanel = () => { setProdOpen(false); };
                   <input
                     type="number"
                     step="0.01"
-                    className="inputRan w-28 text-right"
+                    className=" w-28 text-right"
                     placeholder="(auto)"
                     value={d.unitPriceOverride ?? ""}
                     onChange={(e) => updateRow(idx, { unitPriceOverride: e.target.value })}
@@ -651,14 +649,14 @@ const closeProductPanel = () => { setProdOpen(false); };
                 </Td>
                 <Td>
                   <input
-                    className="inputRan w-full"
+                    className="w-full"
                     value={d.note ?? ""}
                     onChange={(e) => updateRow(idx, { note: e.target.value })}
                   />
                 </Td>
                 <Td className="text-right">
                   <button
-                    className="px-2 py-1 rounded-lg border text-xs hover:bg-rose-50 hover:text-rose-600"
+                    className="px-2 py-1 rounded-lg border text-xs btn-danger"
                     onClick={() => removeRow(idx)}
                   >
                     Quitar
@@ -675,11 +673,12 @@ const closeProductPanel = () => { setProdOpen(false); };
         <h4 className="font-semibold mb-2">Agregar ítem</h4>
 
         <div className="relative">
-          <div className="rounded-xl border p-2 grid grid-cols-5 gap-3 items-end bg-white">
-              <label className="col-span-4 text-xs mb-2">
+          <div className=" flex rounded-xl border p-2 items-end bg-white">
+              <label className=" text-xs mb-2">
               <span className="text-gray-500">Buscar producto</span>
+              </label>
               <input
-                className="inputRan w-full"
+                className="inputRan w-8/12"
                 placeholder="Ej: Nokia 2660, A15, Dell Pro…"
                 value={prodQuery ?? ""}
                 onChange={(e) => setProdQuery(e.target.value)}
@@ -687,8 +686,8 @@ const closeProductPanel = () => { setProdOpen(false); };
                   if (e.key === "Enter") doProductSearch();
                 }}
               />
-            </label>
-            <div className="col-span-1 flex justify-end">
+            
+            <div className=" w-24 ml-2">
               <button
                 className="px-3 py-2 rounded-xl border text-sm btn-custom hover:bg-gray-50 w-full"
                 onClick={doProductSearch}
@@ -703,13 +702,13 @@ const closeProductPanel = () => { setProdOpen(false); };
           {/* Panel de resultados */}
           {prodOpen && (
             <>
-              <div className="fixed inset-0 z-40" onClick={closeProductPanel} />
-              <div className="absolute z-50 mt-2 w-full rounded-2xl border shadow-xl bg-neutral-50">
-                <div className="flex items-center justify-between px-3 py-2 border-b">
+              <div className=""  />
+              <div className="absolute z-50 mt-2 w-full rounded-2xl border  shadow-xl bg-neutral-50">
+                <div className="flex panel-custom-lite items-center justify-between px-3 py-2 border-b">
                   <p className="text-sm font-medium">
                     Resultados {prodLoading ? "(cargando…)" : `(${(prodResults ?? []).length})`}
                   </p>
-                  <button className="text-xs px-2 py-1 rounded-lg border hover:bg-gray-100" onClick={closeProductPanel}>
+                  <button className="text-xs btn-danger px-2 py-1 rounded-lg border hover:bg-gray-100" onClick={closeProductPanel}>
                     Cerrar
                   </button>
                 </div>
@@ -720,7 +719,7 @@ const closeProductPanel = () => { setProdOpen(false); };
                   {(prodResults ?? []).map((p) => {
                     const firstImg = p?.variants?.[0]?.images?.[0]?.url;
                     return (
-                      <div key={p.id} className="rounded-xl border bg-white overflow-hidden hover:shadow transition">
+                      <div key={p.id} className="rounded-xl border-2 border-amber-400 bg-white overflow-hidden hover:shadow transition">
                         <div className="flex gap-3 p-3">
                           <div className="w-16 h-16 rounded-lg bg-gray-100 overflow-hidden shrink-0">
                             {firstImg ? (
@@ -737,7 +736,7 @@ const closeProductPanel = () => { setProdOpen(false); };
                           </div>
                         </div>
 
-                        <div className="border-t bg-neutral-50 p-2">
+                        <div className="border-t-2 rounded-t-xl border-amber-400  bg-neutral-100 p-2">
                           {(!p.variants || p.variants.length === 0) && (
                             <p className="text-xs text-gray-500 px-2 py-1">Sin variantes disponibles</p>
                           )}
@@ -748,15 +747,15 @@ const closeProductPanel = () => { setProdOpen(false); };
                                 className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg hover:bg-neutral-100"
                               >
                                 <div className="min-w-0">
-                                  <p className="text-xs text-gray-700 truncate" title={v.sku}>
+                                  <p className="text-xs text-gray-500 truncate" title={v.sku}>
                                     {v.sku}
                                   </p>
                                   {typeof v.price === "number" && (
-                                    <p className="text-[11px] text-gray-500">Base: {formatCurrency(v.price)}</p>
+                                    <p className="text-md text-gray-700">Base: {formatCurrency(v.price)}</p>
                                   )}
                                 </div>
                                 <button
-                                  className="px-2 py-1 rounded-lg border text-xs hover:bg-gray-50"
+                                  className="px-2 py-1 btn-custom rounded-lg border text-xs hover:bg-gray-50"
                                   onClick={() => onPickVariant(p, v)}
                                   aria-label={`Agregar variante ${v.id}`}
                                 >
@@ -791,7 +790,7 @@ const closeProductPanel = () => { setProdOpen(false); };
             {["Pending", "Approved", "Delivered", "Cancelled"].map((st) => (
               <button
                 key={st}
-                className={`px-3 py-1.5 rounded-xl border text-xs ${st === selected.state ? "bg-gray-50" : "hover:bg-gray-50"}`}
+                className={`px-3 py-1.5 rounded-xl border text-xs ${stateBg[st]} ${st === selected.state ? " panel-customLight-lite !bg-yellow-500" : "cursor-pointer"}`}
                 onClick={() => onChangeState(selected, st)}
               >
                 {st}
@@ -843,7 +842,7 @@ function Td({ children, className = "" }) {
 }
 function KpiCard({ title, value }) {
   return (
-    <div className="border p-4 panel-custom ">
+    <div className="border p-4 panel-customLight ">
       <p className="text-xs text-gray-500 ">{title}</p>
       <p className="mt-1 text-xl font-semibold">{value}</p>
     </div>

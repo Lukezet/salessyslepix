@@ -16,6 +16,15 @@
 .panel-custom {
   @apply  bg-neutral-800 hover:bg-neutral-700 cursor-pointer border-yellow-500 rounded-2xl border-3 active:scale-95 text-white hover:shadow-lg transition duration-150 ease-out;
 }
+.panel-custom-lite {
+  @apply  bg-neutral-800  border-yellow-500 rounded-2xl border-3  text-white hover:shadow-lg transition duration-150 ease-out;
+}
+.panel-customLight {
+  @apply  bg-neutral-200 hover:bg-white cursor-pointer border-yellow-500 rounded-2xl border-3 active:scale-95 text-neutral-900 hover:shadow-lg transition duration-150 ease-out;
+}
+.panel-customLight-lite {
+  @apply  bg-white border-yellow-500 rounded-2xl border-3  text-neutral-900 hover:shadow-lg transition duration-150 ease-out;
+}
 
 .inputRan {
   border-radius: 10px;

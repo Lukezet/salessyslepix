@@ -1,6 +1,6 @@
 // Navbar.jsx
 import { useEffect, useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useCart } from "../store/cart";
 import { useAuth } from "../store/auth";
 import { useUsdRate } from "../store/usdRate";   
@@ -13,10 +13,31 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const [term, setTerm] = useState("");
-
+  const location = useLocation();
+  const isCheckout = location.pathname.startsWith("/checkout");
   const { rate: usdRate, load, refresh } = useUsdRate();   // 👈 usa el store
   const [openRefresh, setOpenRefresh] = useState(false);
+  useEffect(() => {
+    if (isCheckout) return;
+    load(); // GET /api/exchange-rate
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, location.search]);
+  useEffect(() => {
+  const onFocus = () => load();
+  const onPageShow = (e) => { if (e.persisted) load(); }; // back/forward cache
+  const onVisibility = () => { if (document.visibilityState === "visible") load(); };
 
+  window.addEventListener("focus", onFocus);
+  window.addEventListener("pageshow", onPageShow);
+  document.addEventListener("visibilitychange", onVisibility);
+
+  return () => {
+    window.removeEventListener("focus", onFocus);
+    window.removeEventListener("pageshow", onPageShow);
+    document.removeEventListener("visibilitychange", onVisibility);
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -32,7 +53,8 @@ export default function Navbar() {
   const handleCloseModal = () => setOpenRefresh(false);
 
   const handleConfirmRefresh = async (optionalRate) => {
-    const res = await refresh(optionalRate ?? undefined);   // 👈 refresco global
+    const res = await refresh(optionalRate ?? undefined); 
+    console.log("que carajo traigo",res)  // 👈 refresco global
     return res; // el modal no necesita nada más, pero lo devolvemos igual
   };
 
