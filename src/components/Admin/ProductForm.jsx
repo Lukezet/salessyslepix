@@ -1,6 +1,6 @@
 // src/admin/ProductForm.jsx
 import { useEffect, useMemo, useState } from "react";
-import FilePicker from "../../components/FilePicker";
+import FilePicker from "../FilePicker";
 import { slugify } from "../../lib/slugify";
 import {
   listBrands,

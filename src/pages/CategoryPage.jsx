@@ -114,6 +114,7 @@ const getThumbUrl = (p) => {
               <div className="mt-2 flex flex-col items-end">
                 <h3 className="text-sm font-medium line-clamp-2 self-start">{p.name}</h3>
                 <p className="text-sm text-gray-600 self-start">{formatPrice?.(p.price) ?? `$${p.price}`}</p>
+                 {p.variants?.[0]?.isDisabled==false ? (
                 <AddButton
                                 product={{
                                   id: p.id,
@@ -139,7 +140,7 @@ const getThumbUrl = (p) => {
                                         }${p.variants?.[0]?.sizeName ? ` ${p.variants?.[0]?.sizeName}` : ""}`.trim()
                                       : p.name,
                                 }}
-                              />
+                              />) :( <div/>)}
               </div>
             </Link>
             );

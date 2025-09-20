@@ -225,9 +225,19 @@ const gallery = useMemo(() => {
           </div>
 
           {!loading && product && (
-            <div className="flex flex-col justify-center items-end">
-              <label htmlFor="AddButton" className="text-xs">Agregar al carrito</label>
-              <AddButton
+            <div  className="flex flex-col justify-center items-start">
+               <label htmlFor="AddButton" className="text-xs">
+                  {selectedVariant?.isDisabled ? "Sin stock" : "Agregar al carrito"}
+                </label>
+                  {selectedVariant?.isDisabled ? (
+                <button
+                  type="button"
+                  className="px-3 py-2 rounded-xl border-2 text-xl opacity-60 cursor-not-allowed"
+                  disabled
+                >
+                  Sin stock
+                </button>
+              ) : (<AddButton 
                 product={{
                   id: product.id,
                   name: product.name,
@@ -252,7 +262,7 @@ const gallery = useMemo(() => {
                         }${selectedVariant.sizeName ? ` ${selectedVariant.sizeName}` : ""}`.trim()
                       : product.name,
                 }}
-              />
+              />)}
             </div>
           )}
         </div>

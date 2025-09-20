@@ -84,6 +84,25 @@ export async function getProducts() {
   const { data } = await axiosClient.get("/api/Products");
   return data.map(mapProductApiToShop);
 }
+export async function getProductsPaginated(page = 1, pageSize = 20, search = "") {
+  const { data } = await axiosClient.get("/api/Products/paginated", {
+    params: {
+      page,
+      pageSize,
+      search: search || undefined,        // nombre del parámetro que espera el backend
+      includeDisabled: true               // para que admin vea TODAS las variantes
+    }
+  });
+
+  // Normalizar shape para el front
+  return {
+    items: Array.isArray(data?.items) ? data.items.map(mapProductApiToShop) : [],
+    totalCount: Number(data?.totalCount ?? 0),
+    totalPages: Number(data?.totalPages ?? 1),
+    page: Number(data?.page ?? page),
+    pageSize: Number(data?.pageSize ?? pageSize)
+  };
+}
 export async function getProductById(id) {
   const { data } = await axiosClient.get(`/api/Products/${id}`);
   return mapProductApiToShop(data);
@@ -112,6 +131,14 @@ export async function searchProducts2(q) {
 }
 /* ========= PRODUCTOS (ADMIN) ========= */
 // Estos no transforman a string[] y envían el DTO correcto
+// services/catalog.js
+export async function setProductVariantDisabled(variantId, disabled) {
+  const { data } = await axiosClient.patch(
+    `/api/Products/variants/${variantId}/disabled`,
+    { isDisabled: disabled } // 👈 nombre correcto
+  );
+  return data;
+}
 
 export async function getProductAdminById(id) {
   const { data } = await axiosClient.get(`/api/Products/${id}`);
