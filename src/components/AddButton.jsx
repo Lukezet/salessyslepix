@@ -50,7 +50,7 @@ console.log(product)
           </svg>
         </button>
         <input
-          className="absolute  top-1.5 right-4 w-16 h-7 bg-white rounded-l-2xl pl-4 no-spinner"
+          className="absolute  top-1.5 right-4 w-16 h-7 bg-white rounded-l-2xl pl-4 no-spinner border-2 border-amber-400"
           type="number"
           min={1}
           inputMode="numeric"

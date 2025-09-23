@@ -37,6 +37,7 @@ export default function AdminPage() {
   };
   // Debounce del buscador
   useEffect(() => {
+
     const t = setTimeout(() => setDq(q.trim().toLowerCase()), 300);
     return () => clearTimeout(t);
   }, [q]);

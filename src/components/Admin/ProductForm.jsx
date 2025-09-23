@@ -473,6 +473,7 @@ const save = async () => {
           <label className="block text-sm font-medium">Marca</label>
           <div className="flex gap-2">
             <select
+              translate="no"
               className="flex-1 border rounded px-3 py-2"
               value={form.brandId ?? ""}
               onChange={e => setField("brandId", e.target.value ? Number(e.target.value) : null)}

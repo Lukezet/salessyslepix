@@ -113,7 +113,7 @@ const getThumbUrl = (p) => {
               </div>
               <div className="mt-2 flex flex-col items-end">
                 <h3 className="text-sm font-medium line-clamp-2 self-start">{p.name}</h3>
-                <p className="text-sm text-gray-600 self-start">{formatPrice?.(p.price) ?? `$${p.price}`}</p>
+                <p className="text-sm text-gray-600 self-start">{formatPrice?.(p.variants?.[0]?.price) ?? `$${p.price}`}</p>
                  {p.variants?.[0]?.isDisabled==false ? (
                 <AddButton
                                 product={{
@@ -122,7 +122,7 @@ const getThumbUrl = (p) => {
                                   brandName: p.brandName,
                                   description: p.description,
                                   // Lo que realmente se usa al agregar:
-                                  price: p.price,
+                                  price: p.variants?.[0]?.price ?? p.price,
                                   images: [getThumbUrl(p)], // strings para tu Card/Cart
                                   // Datos de la variante seleccionada:
                                   variantId: p.variants?.[0]?.id ?? null,
