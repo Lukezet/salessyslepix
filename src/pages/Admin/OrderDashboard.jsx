@@ -499,7 +499,7 @@ const closeProductPanel = () => { setProdOpen(false); };
 
       {/* Cabecera: Ver vs Editar */}
       {!editMode ? (
-        <div className="mt-4 grid  grid-cols-3 gap-3 text-sm">
+        <div className="mt-4 grid  grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
           <div className="rounded-xl border panel-customLight-lite p-2 px-4">
             <p className="text-gray-500">Cliente</p>
             <p className="font-medium">{selected.customerName || "—"}</p>
@@ -508,25 +508,26 @@ const closeProductPanel = () => { setProdOpen(false); };
             <p className="text-gray-500">Teléfono</p>
             <p className="font-medium">{selected.customerPhone || "—"}</p>
           </div>
-          <div className="rounded-xl panel-customLight-lite  border p-2 px-4">
+          <div className="rounded-xl panel-customLight-lite  border p-2 px-4 col-span-2 sm:col-span-1">
             <p className="text-gray-500">Direccion</p>
             <p className="font-medium">{selected.customerAddress || "—"}</p>
           </div>
-          <div className="rounded-xl panel-customLight-lite  border p-2 px-4 col-span-3">
+          <div className="rounded-xl panel-customLight-lite  border p-2 px-4 col-span-2">
             <p className="text-gray-500">Observaciones del cliente</p>
             <p className="font-medium">{selected.customerObservations || "—"}</p>
+          </div>
+           <div className="rounded-xl panel-custom-lite p-2 px-4  col-span-1 self-end">
+            <p className="text-gray-200">Cotizacion USD</p>
+            <p className="font-semibold text-green-400 ">{formatCurrency(selected.exchangeRateAtCreation)}</p>
           </div>
           <div className="rounded-xl panel-customLight-lite  border p-2 px-4  col-span-2">
             <p className="text-gray-500">Total</p>
             <p className="font-semibold">{formatCurrency(selected.total)}</p>
           </div>
-          <div className="rounded-xl panel-custom-lite p-2 px-4  col-span-1">
-            <p className="text-gray-200">Cotizacion USD</p>
-            <p className="font-semibold text-green-400 ">{formatCurrency(selected.exchangeRateAtCreation)}</p>
-          </div>
+         
         </div>
       ) : (
-        <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
           <label className="rounded-xl  panel-customLight  p-2 px-4 flex flex-col ">
             <span className="text-gray-500">Cliente</span>
             <input className="" value={editModel.customerName} onChange={e => setEditModel(m => ({...m, customerName: e.target.value}))} />
@@ -535,7 +536,7 @@ const closeProductPanel = () => { setProdOpen(false); };
             <span className="text-gray-500">Teléfono</span>
             <input className="" value={editModel.customerPhone} onChange={e => setEditModel(m => ({...m, customerPhone: e.target.value}))} />
           </label>
-          <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col">
+          <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col col-span-2 sm:col-span-1">
             <span className="text-gray-500">Dirección</span>
             <input className="" value={editModel.customerAddress} onChange={e => setEditModel(m => ({...m, customerAddress: e.target.value}))} />
           </label>
@@ -543,7 +544,7 @@ const closeProductPanel = () => { setProdOpen(false); };
             <span className="text-gray-500">Email</span>
             <input className="" value={editModel.customerEmail} onChange={e => setEditModel(m => ({...m, customerEmail: e.target.value}))} />
           </label> */}
-          <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col col-span-3">
+          <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col col-span-2 sm:col-span-1">
             <span className="text-gray-500">Observaciones</span>
             <textarea className="" rows={2} value={editModel.customerObservations} onChange={e => setEditModel(m => ({...m, customerObservations: e.target.value}))} />
           </label>
@@ -555,24 +556,26 @@ const closeProductPanel = () => { setProdOpen(false); };
             <span className="text-gray-500">Monto pagado (ARS)</span>
             <input type="number" step="0.01" className="" value={editModel.paymentAmount} onChange={e => setEditModel(m => ({...m, paymentAmount: e.target.value}))} />
           </label>
-          <div className="rounded-xl panel-customLight p-2 px-4 col-span-1">
+
+           <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col">
+            <span className="text-gray-500">Descuento (%)</span>
+            <input type="number" step="0.01" className="" value={editModel.discountPercent} onChange={e => setEditModel(m => ({...m, discountPercent: e.target.value, discountAmount: ""}))} />
+          </label>
+          <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col">
+            <span className="text-gray-500">Descuento (ARS)</span>
+            <input type="number" step="0.01" className="" value={editModel.discountAmount} onChange={e => setEditModel(m => ({...m, discountAmount: e.target.value, discountPercent: ""}))} />
+          </label>
+          <div className="rounded-xl panel-custom p-2 px-4 col-span-2">
             <div className="flex items-center gap-2">
               <input className="text-green-400 bg-green-400  accent-green-400" id="fxrefresh" type="checkbox" checked={!!editModel.refreshExchangeRate} onChange={e => setEditModel(m => ({...m, refreshExchangeRate: e.target.checked}))} />
               <label htmlFor="fxrefresh" className="text-xs text-green-400">Refrescar cotización</label>
             </div>
             <label className="mt-2  block">
               <span className="text-gray-500 text-xs">cotizacion personalizada</span>
-              <input type="number" step="0.01" className="panel-customLight w-24" value={editModel.exchangeRateOverride} onChange={e => setEditModel(m => ({...m, exchangeRateOverride: e.target.value}))} />
+              <input type="number" step="0.01" className="ml-2 border-2 border-amber-500 w-24 rounded-lg bg-amber-50" value={editModel.exchangeRateOverride} onChange={e => setEditModel(m => ({...m, exchangeRateOverride: e.target.value}))} />
             </label>
           </div>
-          <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col">
-            <span className="text-gray-500">Descuento (ARS)</span>
-            <input type="number" step="0.01" className="" value={editModel.discountAmount} onChange={e => setEditModel(m => ({...m, discountAmount: e.target.value, discountPercent: ""}))} />
-          </label>
-          <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col">
-            <span className="text-gray-500">Descuento (%)</span>
-            <input type="number" step="0.01" className="" value={editModel.discountPercent} onChange={e => setEditModel(m => ({...m, discountPercent: e.target.value, discountAmount: ""}))} />
-          </label>
+         
         </div>
       )}
 
@@ -581,7 +584,7 @@ const closeProductPanel = () => { setProdOpen(false); };
         <>
           <div className="mt-6">
             <h4 className="font-semibold mb-2">Detalle</h4>
-            <div className="rounded-xl shadow-lg shadow-neutral-800 overflow-hidden">
+            <div className="rounded-2xl border-3 border-yellow-400 shadow-lg  shadow-neutral-400 overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead className="bg-neutral-800 border-y-2 border-amber-400  text-white text-left">
                   <tr>

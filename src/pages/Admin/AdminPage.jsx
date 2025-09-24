@@ -1,6 +1,7 @@
 // src/admin/AdminPage.jsx
 import { useEffect, useMemo, useState,Fragment, } from "react";
 import { getProductsPaginated, deleteProduct, setProductVariantDisabled } from "../../services/catalog";
+import PriceIncreasePanel from "../../components/Admin/PriceIncreasePanel";
 import ProductForm from "../../components/Admin/ProductForm";
 
 function formatPrice(n) {
@@ -22,7 +23,7 @@ export default function AdminPage() {
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [toggling, setToggling] = useState(null); // variantId que se está actualizando
-
+  const [showIncrease, setShowIncrease] = useState(false);
   const toggleVariantDisabled = async (variantId, nextDisabled) => {
     try {
       setToggling(variantId);
@@ -95,6 +96,9 @@ const filtered = useMemo(() => {
   });
 }, [items, dq]);
 
+  const onAppliedIncreases = async () => {
+    await load(); // refrescar grilla
+  };
   const closePanel = () => { setCreating(false); setEditingId(null); };
 
   // Acciones
@@ -126,6 +130,7 @@ const filtered = useMemo(() => {
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <h1 className="text-2xl font-semibold flex-1">Gestión de Productos</h1>
         <div className="flex items-center gap-2">
+          <button className="btn-custom px-3 py-4" onClick={() => setShowIncrease(true)}>Aumentos</button>
           <input
             className="inputRan rounded px-3 py-2 w-64 h-12"
             placeholder="Buscar por nombre, slug, marca, SKU…"
@@ -332,7 +337,22 @@ const filtered = useMemo(() => {
 
         </div>
       )}
-
+      {/* PANEL DE AUMENTOS */}
+      {showIncrease && (
+        <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setShowIncrease(false)}>
+          <div className="absolute right-0 top-0 bottom-0 w-full  xl:w-[1200px] bg-white shadow-xl overflow-y-auto p-4"
+               onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-medium">Aumentos de precio</h2>
+              <button className="text-sm text-white btn-danger px-4 py-2" onClick={() => setShowIncrease(false)}>X</button>
+            </div>
+            <PriceIncreasePanel
+              onClose={() => setShowIncrease(false)}
+              onApplied={onAppliedIncreases}
+            />
+          </div>
+        </div>
+      )}
       {/* PANEL DE EDICIÓN / CREACIÓN */}
       {(creating || editingId) && (
         <div className="fixed inset-0 bg-black/30 z-40" onClick={closePanel}>

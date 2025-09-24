@@ -162,6 +162,12 @@ export async function deleteProduct(id) {
   await axiosClient.delete(`/api/Products/${id}`);
   return true;
 }
+/* ========= PROVEEDORES ========= */
+export const listProviders = () =>
+  axiosClient.get("/api/Providers").then(r => r.data);
+export const createProviders = (payload) =>
+  // payload: { name, slug, logoUrl?, website?, description? }
+  axiosClient.post("/api/Providers", payload).then(r => r.data);
 
 /* ========= MARCAS ========= */
 
@@ -262,5 +268,21 @@ export async function refreshDolarValue(rate) {
 
 export async function getDolarValue() {
   const { data } = await axiosClient.get("/api/exchange-rate");
+  return data;
+}
+
+export async function getPriceIncreasePreview({ brandIds=[], providerIds=[], categoryIds=[], max=200 }) {
+  const p = new URLSearchParams();
+  brandIds.forEach(id => p.append("brandIds", id));
+  providerIds.forEach(id => p.append("providerIds", id));
+  categoryIds.forEach(id => p.append("categoryIds", id));
+  if (max) p.set("max", String(max));
+  const { data } = await axiosClient.get(`/api/price-adjustments/preview?${p.toString()}`);
+  return data;
+}
+
+export async function applyPriceIncrease({ percent, brandIds=[], providerIds=[], categoryIds=[], excludeProductIds=[], affectVariantOverrides=true }) {
+  const body = { percent, brandIds, providerIds, categoryIds, excludeProductIds, affectVariantOverrides };
+  const { data } = await axiosClient.post(`/api/price-adjustments/apply`, body);
   return data;
 }

@@ -11,8 +11,10 @@ import {
   createProduct,
   updateProduct,
   getProductAdminById,
-  listColors,     // 👈 NUEVO
-  listSizes,      // 👈 NUEVO
+  listColors,     
+  listSizes,      
+  listProviders,
+  createProviders
 } from "../../services/catalog";
 import { useUsdRate } from "../../store/usdRate";
 const CURRENCY = { USD: 1, ARS: 2 };
@@ -45,6 +47,7 @@ export default function ProductForm({
   const [err, setErr] = useState(null);
   const { rate: usdRate, load } = useUsdRate();
   const [brands, setBrands] = useState([]);
+  const [providers, setProviders] = useState([]);
   const [cats, setCats] = useState([]);
   const [colors, setColors] = useState([]); // 👈 NUEVO
   const [sizes, setSizes] = useState([]);   // 👈 NUEVO
@@ -56,6 +59,7 @@ export default function ProductForm({
     description: "",
     price: 0,
     brandId: null,
+    providerId:null,
     categoryId: null,
     // 🚫 Quitamos imágenes de producto (para evitar confusión)
     images: [],
@@ -80,14 +84,16 @@ const convertedArs =
         setLoading(true);
         setErr(null);
 
-        const [b, c, col, sz] = await Promise.all([
+        const [b,provid, c, col, sz] = await Promise.all([
           listBrands(),
+          listProviders(),
           getCategories(),
           listColors(),   // 👈 NUEVO
           listSizes(),    // 👈 NUEVO
         ]);
         if (!alive) return;
         setBrands(b);
+        setProviders(provid);
         setCats(c);
         setColors(col);
         setSizes(sz);
@@ -96,6 +102,7 @@ const convertedArs =
           setForm(fromApiToForm(initial));
         } else if (productId) {
           const p = await getProductAdminById(productId);
+          console.log("WTF",p)
           if (!alive) return;
           setForm(fromApiToForm(p));
         } else {
@@ -126,6 +133,7 @@ useEffect(() => {
       description: p.description ?? "",
       price: Number(p.price ?? 0),
       brandId: p.brandId ?? null,
+      providerId: p.providerId ?? null,
       categoryId: p.categoryId ?? null,
       images: [], // 🚫 ya no usamos imágenes de producto
       variants: Array.isArray(p.variants) ? p.variants.map(v => ({
@@ -257,6 +265,13 @@ const addVariantFiles = (idx, files) => {
     const b = await createBrand({ name, slug, logoUrl: null, website: null, description: null });
     setBrands(prev => [...prev, b]);
     setField("brandId", b.id);
+  };
+  const quickAddProvider = async () => {
+    const name = prompt("Nombre del Proveedor");
+    if (!name) return;
+    const provid = await createProviders({ name, legalName: null, taxId: null, phone: null });
+    setProviders(prev => [...prev, provid]);
+    setField("providerId", provid.id);
   };
 
 const quickAddCategory = async () => {
@@ -413,10 +428,10 @@ const save = async () => {
 
       {/* Campos básicos */}
       <div className="grid md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium">Nombre</label>
+        <div className="flex flex-col justify-center mb-4">
+          <label className="block text-sm font-medium mb-2">Nombre:</label>
           <input
-            className="w-full border rounded px-3 py-2"
+            className="w-full border rounded px-3 py-2 inputRan"
             value={form.name}
             onChange={e => setField("name", e.target.value)}
             onBlur={onNameBlur}
@@ -428,7 +443,7 @@ const save = async () => {
         */}
         <div>
           <div className="flex items-center">
-          <label className="block text-sm font-medium">
+          <label className="block text-sm font-medium mb-2">
             Precio base {form.currency === CURRENCY.USD ? "(USD)" : "(ARS)"}
           </label>
           {form.currency === CURRENCY.USD && (
@@ -449,13 +464,13 @@ const save = async () => {
           <div className="flex gap-2">
             <input
               type="number"
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 inputRan"
               value={form.price}
               onChange={e => setField("price", e.target.value)}
               min={0}
             />
             <select
-              className="w-28 border rounded px-2 py-2"
+              className="w-28 border rounded px-2 py-2 panel-custom"
               value={form.currency}
               onChange={e => setField("currency", Number(e.target.value))} // 👈 importante: número
               title="Moneda de carga"
@@ -470,11 +485,11 @@ const save = async () => {
           </p>
         </div>
         <div>
-          <label className="block text-sm font-medium">Marca</label>
+          <label className="block text-sm font-medium mb-2">Marca</label>
           <div className="flex gap-2">
             <select
               translate="no"
-              className="flex-1 border rounded px-3 py-2"
+              className="flex-1 border rounded px-3 py-2 inputRan"
               value={form.brandId ?? ""}
               onChange={e => setField("brandId", e.target.value ? Number(e.target.value) : null)}
             >
@@ -482,6 +497,21 @@ const save = async () => {
               {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
             <button type="button" className="btn-custom px-3 py-2" onClick={quickAddBrand}>+ Nueva</button>
+          </div>
+        </div>
+         <div>
+          <label className="block text-sm font-medium mb-2">Proveedor</label>
+          <div className="flex gap-2">
+            <select
+              translate="no"
+              className="flex-1 border rounded px-3 py-2 inputRan"
+              value={form.providerId ?? ""}
+              onChange={e => setField("providerId", e.target.value ? Number(e.target.value) : null)}
+            >
+              <option value="">— Seleccionar —</option>
+              {providers.map(provis => <option key={provis.id} value={provis.id}>{provis.name}</option>)}
+            </select>
+            <button type="button" className="btn-custom px-3 py-2" onClick={quickAddProvider}>+ Nueva</button>
           </div>
         </div>
        <div className="md:col-span-2">
