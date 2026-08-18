@@ -1,15 +1,32 @@
 @import "tailwindcss";
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --heading-font: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
+  --tenant-color-primary: #facc15;
+  --tenant-color-primary-hover: #eab308;
+  --tenant-color-on-primary: #171717;
+  --tenant-color-surface: #ffffff;
+  --tenant-color-text: #171717;
+  --tenant-color-footer: #262626;
 
 }
 
 .btn-custom {
-  @apply bg-neutral-800 hover:bg-neutral-700 cursor-pointer border-yellow-500 rounded-xl border-3 active:scale-95 text-white hover:shadow-lg transition duration-150 ease-out;
+  cursor: pointer;
+  border: 2px solid var(--tenant-color-primary);
+  border-radius: .75rem;
+  background: var(--tenant-color-primary);
+  color: var(--tenant-color-on-primary);
+  font-weight: 650;
+  transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
 }
+.btn-custom:hover {
+  background: var(--tenant-color-primary-hover);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--tenant-color-primary) 28%, transparent);
+}
+.btn-custom:active { transform: scale(.97); }
 .btn-danger {
   @apply bg-red-300 hover:bg-rose-200 cursor-pointer border-rose-400 rounded-xl border-3 active:scale-95 text-neutral-800 hover:shadow-lg transition duration-150 ease-out;
 }
@@ -64,3 +81,108 @@
   border-radius: 50px;
   box-shadow: rgba(0, 0, 0, 0.17) 0px -23px 25px 0px inset, rgba(0, 0, 0, 0.15) 0px -36px 30px 0px inset, rgba(0, 0, 0, 0.1) 0px -79px 40px 0px inset, rgba(0, 0, 0, 0.06) 0px 2px 1px, rgba(0, 0, 0, 0.09) 0px 4px 2px, rgba(0, 0, 0, 0.09) 0px 8px 4px, rgba(0, 0, 0, 0.09) 0px 16px 8px, rgba(0, 0, 0, 0.09) 0px 32px 16px;
 }
+
+.tenant-header {
+  background-color: var(--tenant-color-primary);
+  color: var(--tenant-color-on-primary);
+}
+.tenant-nav > * {
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  min-height: 0;
+  padding: 0 1.15rem;
+  transition: opacity .15s ease, background .15s ease;
+}
+.tenant-nav > * + * { margin-left: 1.3rem; }
+.tenant-nav > * + *::before {
+  content: "";
+  position: absolute;
+  left: -.65rem;
+  top: .45rem;
+  bottom: .45rem;
+  width: 1px;
+  background: color-mix(in srgb, currentColor 28%, transparent);
+}
+.tenant-nav > *:hover {
+  background: transparent;
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--tenant-color-on-primary) 68%, transparent);
+}
+.tenant-nav { align-self: stretch; }
+.tenant-nav > div { display: inline-flex; align-items: center; gap: .5rem; }
+.tenant-nav > div:hover { background: transparent; box-shadow: none; }
+
+.admin-navbar {
+  background: #0b1728;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(148, 163, 184, .16);
+}
+.admin-navbar-action { border: 1px solid rgba(148, 163, 184, .42); color: #e2e8f0; }
+.admin-navbar-action:hover { border-color: rgba(125, 211, 252, .75); background: rgba(125, 211, 252, .06); }
+.admin-nav {
+  align-self: stretch;
+  gap: .75rem;
+  padding-left: 1rem;
+}
+.admin-nav > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 0;
+  padding: 0 .65rem;
+  color: #e2e8f0;
+}
+.admin-nav > a:hover { color: #f8fafc; box-shadow: inset 0 -2px 0 #7dd3fc; }
+.admin-navbar, .admin-navbar *, .admin-premium h1, .admin-premium h2, .admin-premium h3, .admin-premium .admin-title {
+  font-family: var(--heading-font);
+}
+
+.tenant-footer {
+  background-color: var(--tenant-color-footer);
+}
+
+/* Administrative surfaces use a restrained dark-luxe system that is deliberately
+   scoped so public storefront branding stays completely tenant driven. */
+.admin-premium {
+  --admin-ink: #f8fafc;
+  --admin-muted: #94a3b8;
+  --admin-line: rgba(148, 163, 184, .16);
+  --admin-panel: rgba(15, 23, 42, .82);
+  color: var(--admin-ink);
+  isolation: isolate;
+}
+.admin-premium::before {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  background:
+    radial-gradient(circle at 12% 2%, rgba(59, 130, 246, .13), transparent 24rem),
+    radial-gradient(circle at 86% 15%, rgba(14, 165, 233, .10), transparent 26rem),
+    #07111f;
+  pointer-events: none;
+}
+.admin-shell { max-width: 1200px; margin-inline: auto; padding: 1.25rem 0 3rem; }
+.admin-title { color: #f8fafc; font-size: clamp(2rem, 4vw, 3.25rem); font-weight: 700; letter-spacing: -.035em; line-height: 1.08; }
+.admin-subtitle { color: var(--admin-muted); max-width: 42rem; }
+.admin-glass { background: var(--admin-panel); border: 1px solid var(--admin-line); box-shadow: 0 20px 60px rgba(0, 0, 0, .23); backdrop-filter: blur(16px); }
+.admin-card { background: linear-gradient(145deg, rgba(30, 41, 59, .9), rgba(15, 23, 42, .85)); border: 1px solid var(--admin-line); box-shadow: 0 16px 36px rgba(0,0,0,.18); }
+.admin-premium .inputRan { background: rgba(255,255,255,.95); outline: 0; border: 1px solid rgba(255,255,255,.3); color: #0f172a; }
+.admin-premium .inputRan:focus { border-color: rgba(125, 211, 252, .8); box-shadow: 0 0 0 3px rgba(14, 165, 233, .16); }
+.admin-primary, .admin-secondary { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border: 1px solid rgba(148, 163, 184, .42); border-radius: .65rem; background: transparent; color: #e2e8f0; font-weight: 650; transition: border-color .16s ease, color .16s ease, background .16s ease; }
+.admin-primary:hover, .admin-secondary:hover { border-color: rgba(125, 211, 252, .75); background: rgba(125, 211, 252, .06); color: #f8fafc; }
+.admin-primary:active, .admin-secondary:active { border-color: #38bdf8; background: rgba(56, 189, 248, .13); }
+.admin-primary:focus-visible, .admin-secondary:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 3px; }
+.admin-chip { display: inline-flex; align-items: center; border-radius: 999px; border: 1px solid rgba(148,163,184,.3); background: rgba(148,163,184,.08); padding: .3rem .65rem; color: #cbd5e1; font-size: .72rem; font-weight: 700; }
+.admin-premium .branding-editor { background: #0b1728; border-color: rgba(148, 163, 184, .28); box-shadow: none; color: #e2e8f0; }
+.admin-premium .branding-editor h2, .admin-premium .branding-editor h3, .admin-premium .branding-editor label { color: #f8fafc; }
+.admin-premium .branding-editor p, .admin-premium .branding-editor span { color: #94a3b8; }
+.admin-premium .branding-editor input:not([type="color"]), .admin-premium .branding-editor select { background: #111d30; border-color: rgba(148, 163, 184, .36); color: #e2e8f0; }
+.admin-premium .branding-editor input[type="color"] { background: #111d30; border-color: rgba(148, 163, 184, .36); }
+.admin-premium .branding-editor button { border-color: rgba(148, 163, 184, .42); background: transparent; color: #e2e8f0; }
+.admin-premium .branding-editor button:hover { border-color: rgba(125, 211, 252, .75); background: rgba(125, 211, 252, .06); }
+.admin-premium .branding-editor .text-red-700 { color: #fca5a5; }
+.admin-premium table { color: #e2e8f0; }
+.admin-premium table thead { color: #94a3b8; background: rgba(255,255,255,.03); }
+.admin-premium table tr { border-color: var(--admin-line); }
+.admin-premium table tbody tr:hover { background: rgba(255,255,255,.045) !important; }

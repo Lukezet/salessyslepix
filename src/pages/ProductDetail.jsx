@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getProductById } from "../services/catalog";
 import { formatPrice } from "../utils/format";
 import ImageSlider from "../components/ImageSlider";
-import AddButton from "../components/Addbutton";
+import AddButton from "../components/AddButton";
 
 export default function ProductDetail() {
   const navigate = useNavigate();

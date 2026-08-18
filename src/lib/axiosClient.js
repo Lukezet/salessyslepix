@@ -58,8 +58,13 @@ axiosClient.interceptors.response.use(
     }
     
     // Crear un nuevo error con mensaje amigable
+    // Conserva la forma de Axios para que las pantallas puedan tratar 404/422.
     const friendlyError = new Error(errorMessage);
+    friendlyError.name = "ApiError";
     friendlyError.originalError = error;
+    friendlyError.response = error.response;
+    friendlyError.request = error.request;
+    friendlyError.config = error.config;
     friendlyError.statusCode = error.response?.status;
     
     return Promise.reject(friendlyError);

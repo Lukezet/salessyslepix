@@ -7,26 +7,34 @@ export const useAuth = create((set) => ({
   userName: null,
   email: null,
   empresaId: null,
+  empresaSlug: null,
   roles: [],
   isAuthenticated: false,
+  initialized: false,
 
   initFromStorage: () => {
     try {
       const raw = localStorage.getItem("auth");
-      if (!raw) return;
+      if (!raw) {
+        set({ initialized: true });
+        return;
+      }
       const parsed = JSON.parse(raw);
       set({
         token: parsed.token,
         userName: parsed.userName,
         email: parsed.email,
         empresaId: parsed.empresaId,
+        empresaSlug: parsed.empresaSlug ?? null,
         roles: parsed.roles || [],
         isAuthenticated: !!parsed.token,
+        initialized: true,
       });
       setAuthToken(parsed.token);
     } catch (e) {
       // opcional: loguear para debug, evita bloque vacío
       console.warn("auth init error", e);
+      set({ initialized: true });
     }
   },
 
@@ -38,8 +46,10 @@ export const useAuth = create((set) => ({
       userName: res.userName,
       email: res.email,
       empresaId: res.empresaId,
+      empresaSlug: res.empresaSlug ?? null,
       roles: res.roles || [],
       isAuthenticated: true,
+      initialized: true,
     });
     localStorage.setItem("auth", JSON.stringify(res));
     setAuthToken(res.token);
@@ -53,8 +63,10 @@ export const useAuth = create((set) => ({
       userName: null,
       email: null,
       empresaId: null,
+      empresaSlug: null,
       roles: [],
       isAuthenticated: false,
+      initialized: true,
     });
     setAuthToken(null);
   },

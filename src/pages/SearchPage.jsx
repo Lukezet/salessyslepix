@@ -3,8 +3,10 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { searchProducts } from "../services/catalog";
 import { formatPrice } from "../utils/format";
-import AddButton from "../components/Addbutton";
+import AddButton from "../components/AddButton";
+import { useTenantPath } from "../utils/tenantPath";
 export default function SearchPage() {
+  const tenantPath = useTenantPath();
   const [sp] = useSearchParams();
   const q = (sp.get("q") || "").trim();
   const [loading, setLoading] = useState(false);
@@ -14,12 +16,15 @@ export default function SearchPage() {
   useEffect(() => {
     let cancel = false;
     const run = async () => {
-      if (!q) { setItems([]); return; }
+      if (!q) {
+        setItems([]);
+        return;
+      }
       try {
         setLoading(true);
         setError("");
         const res = await searchProducts({ q });
-        console.log(res)
+        console.log(res);
         if (!cancel) setItems(res.items ?? res); // soporta {items:[]} o []
       } catch (e) {
         if (!cancel) setError(e?.message || "Error al buscar");
@@ -28,13 +33,15 @@ export default function SearchPage() {
       }
     };
     run();
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+    };
   }, [q]);
   // arriba del return:
   const getThumbUrl = (p) => {
     const bySort = (a, b) => (a?.sort ?? 0) - (b?.sort ?? 0);
 
-    const defVar = p.variants?.find(v => v.isDefault) ?? p.variants?.[0];
+    const defVar = p.variants?.find((v) => v.isDefault) ?? p.variants?.[0];
     const vImg = defVar?.images?.slice().sort(bySort)?.[0]?.url;
 
     // fallback: primera variante (si no había default) y luego imágenes del producto
@@ -56,44 +63,49 @@ export default function SearchPage() {
       <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {items.map((p) => (
           <li key={p.id} className="inputRan rounded-xl p-3 hover:shadow">
-            <Link to={`/product/${p.id}`} className="block">
+            <Link to={tenantPath(`/product/${p.id}`)} className="block">
               <div className="aspect-square overflow-hidden rounded-lg bg-gray-50">
-            <img
-            src={getThumbUrl(p)}
-            alt={p.name}
-            className="w-full h-full object-cover"
-            loading="lazy"
-            />
+                <img
+                  src={getThumbUrl(p)}
+                  alt={p.name}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
               </div>
               <div className="mt-2 flex flex-col items-end">
-                <h3 className="text-sm font-medium line-clamp-2 self-start">{p.name}</h3>
-                <p className="text-sm text-gray-600 self-start">{formatPrice?.(p.variants?.[0]?.price) ?? `$${p.price}`}</p>
+                <h3 className="text-sm font-medium line-clamp-2 self-start">
+                  {p.name}
+                </h3>
+                <p className="text-sm text-gray-600 self-start">
+                  {formatPrice?.(p.variants?.[0]?.price) ?? `$${p.price}`}
+                </p>
                 <AddButton
-                                product={{
-                                  id: p.id,
-                                  name: p.name,
-                                  brandName: p.brandName,
-                                  description: p.description,
-                                  // Lo que realmente se usa al agregar:
-                                  price: p.variants?.[0]?.price ?? p.price,
-                                  images: [getThumbUrl(p)], // strings para tu Card/Cart
-                                  // Datos de la variante seleccionada:
-                                  variantId: p.variants?.[0]?.id ?? null,
-                                  sku: p.variants?.[0]?.sku ?? null,
-                                  colorId: p.variants?.[0]?.colorId ?? null,
-                                  colorName: p.variants?.[0]?.colorName ?? null,
-                                  colorHex: p.variants?.[0]?.colorHex ?? null,
-                                  sizeId: p.variants?.[0]?.sizeId ?? null,
-                                  sizeName: p.variants?.[0]?.sizeName ?? null,
-                                  // Nombre “bonito” con atributos
-                                  displayName:
-                                    p.variants?.[0]
-                                      ? `${p.name}${
-                                          p.variants?.[0]?.colorName ? ` ${p.variants?.[0]?.colorName}` : ""
-                                        }${p.variants?.[0]?.sizeName ? ` ${p.variants?.[0]?.sizeName}` : ""}`.trim()
-                                      : p.name,
-                                }}
-                              />
+                  product={{
+                    id: p.id,
+                    name: p.name,
+                    brandName: p.brandName,
+                    description: p.description,
+                    // Lo que realmente se usa al agregar:
+                    price: p.variants?.[0]?.price ?? p.price,
+                    images: [getThumbUrl(p)], // strings para tu Card/Cart
+                    // Datos de la variante seleccionada:
+                    variantId: p.variants?.[0]?.id ?? null,
+                    sku: p.variants?.[0]?.sku ?? null,
+                    colorId: p.variants?.[0]?.colorId ?? null,
+                    colorName: p.variants?.[0]?.colorName ?? null,
+                    colorHex: p.variants?.[0]?.colorHex ?? null,
+                    sizeId: p.variants?.[0]?.sizeId ?? null,
+                    sizeName: p.variants?.[0]?.sizeName ?? null,
+                    // Nombre “bonito” con atributos
+                    displayName: p.variants?.[0]
+                      ? `${p.name}${
+                          p.variants?.[0]?.colorName
+                            ? ` ${p.variants?.[0]?.colorName}`
+                            : ""
+                        }${p.variants?.[0]?.sizeName ? ` ${p.variants?.[0]?.sizeName}` : ""}`.trim()
+                      : p.name,
+                  }}
+                />
               </div>
             </Link>
           </li>

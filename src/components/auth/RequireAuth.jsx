@@ -5,6 +5,7 @@ import { useAuth } from "../../store/auth";
 
 export default function RequireAuth({ children }) {
   const isAuthenticated = useAuth((s) => s.isAuthenticated);
+  const initialized = useAuth((s) => s.initialized);
   const initFromStorage = useAuth((s) => s.initFromStorage);
   const location = useLocation();
 
@@ -13,6 +14,10 @@ export default function RequireAuth({ children }) {
     if (!isAuthenticated) initFromStorage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (!initialized) {
+    return null;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/" replace state={{ from: location, reason: "auth" }} />;

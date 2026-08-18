@@ -1,15 +1,19 @@
 // src/admin/AdminPage.jsx
-import { useEffect, useMemo, useState,Fragment, } from "react";
+import { useCallback, useEffect, useMemo, useState,Fragment, } from "react";
+import { useSearchParams } from "react-router-dom";
 import { getProductsPaginated, deleteProduct, setProductVariantDisabled } from "../../services/catalog";
 import PriceIncreasePanel from "../../components/Admin/PriceIncreasePanel";
 import ProductForm from "../../components/Admin/ProductForm";
+import ClientsPage from "./ClientsPage";
+import ClientCreatePage from "./ClientCreatePage";
+import { useAuth } from "../../store/auth";
 
 function formatPrice(n) {
   const x = Number(n) || 0;
   return x.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 }
 
-export default function AdminPage() {
+function ProductAdminPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const [items, setItems] = useState([]);
@@ -44,7 +48,7 @@ export default function AdminPage() {
   }, [q]);
 
   // Cargar lista
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setLoading(true);
       setErr(null);
@@ -57,9 +61,8 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  };
-  useEffect(() => { load(); }, []);
-  useEffect(() => { load(); }, [page, pageSize, dq]);
+  }, [page, pageSize, dq]);
+  useEffect(() => { load(); }, [load]);
   useEffect(() => { setPage(1); }, [dq]); // si cambia búsqueda, vuelve a página 1
 const norm = (s) =>
   String(s ?? "")
@@ -126,22 +129,22 @@ const filtered = useMemo(() => {
   };
 
   return (
-    <section className="p-4 space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <h1 className="text-2xl font-semibold flex-1">Gestión de Productos</h1>
+    <section className="admin-premium"><div className="admin-shell space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+        <div className="flex-1"><h1 className="admin-title">Gestión de productos.</h1><p className="admin-subtitle mt-3">Inventario, variantes y precios con una vista clara para operar rápido.</p></div>
         <div className="flex items-center gap-2">
-          <button className="btn-custom px-3 py-4" onClick={() => setShowIncrease(true)}>Aumentos</button>
+          <button className="admin-secondary px-3 py-3" onClick={() => setShowIncrease(true)}>Aumentos</button>
           <input
             className="inputRan rounded px-3 py-2 w-64 h-12"
             placeholder="Buscar por nombre, slug, marca, SKU…"
             value={q}
             onChange={e => setQ(e.target.value)}
           />
-          <button className="btn-custom px-3 py-4" onClick={onCreate}>+ Nuevo</button>
+          <button className="admin-primary px-4 py-3" onClick={onCreate}>+ Nuevo</button>
         </div>
       </div>
 
-      {err && <div className="p-3 rounded bg-red-100 text-red-800 text-sm">{err}</div>}
+      {err && <div className="rounded-xl border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-100">{err}</div>}
 
       {/* LISTA */}
       {loading ? (
@@ -153,7 +156,7 @@ const filtered = useMemo(() => {
       ) : filtered.length === 0 ? (
         <div className="text-neutral-600">Sin resultados.</div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="admin-glass overflow-x-auto rounded-2xl p-2 sm:p-4">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="text-left border-b">
@@ -305,7 +308,7 @@ const filtered = useMemo(() => {
 
           </table>
           <div className="flex items-center justify-between mt-3">
-  <p className="text-xs text-neutral-600">
+  <p className="text-xs text-slate-400">
     Página {page} de {meta.totalPages} — {meta.totalCount} resultados
   </p>
   <div className="flex items-center gap-2">
@@ -375,6 +378,19 @@ const filtered = useMemo(() => {
           </div>
         </div>
       )}
-    </section>
+    </div></section>
   );
+}
+
+export default function AdminPage() {
+  const [searchParams] = useSearchParams();
+  const section = searchParams.get("section");
+  const isPlatformAdmin = useAuth((state) => state.roles.includes("PlatformAdmin"));
+  // `main.jsx` is deliberately not modified: the existing protected admin
+  // route hosts these platform screens until the router is extracted.
+  if (section === "clients") return <ClientsPage />;
+  if (section === "clients-new") return <ClientCreatePage />;
+  if (section === "products") return <ProductAdminPage />;
+  if (isPlatformAdmin) return <ClientsPage />;
+  return <ProductAdminPage />;
 }

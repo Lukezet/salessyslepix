@@ -25,7 +25,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Route path="cart" element={<CartPage />} />
         <Route path="checkout" element={<Checkout />} />
         <Route path="/search" element={<SearchPage />} />
-
         {/* Protegidas: Admin + Employee */}
         <Route
           path="admin"
@@ -48,6 +47,35 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           }
         />
       </Route>
+      <Route path=":clientSlug" element={<App />}>
+        <Route index element={<Home />} />
+        <Route path="home" element={<Home />} />
+        <Route path="category/:id" element={<CategoryPage />} />
+        <Route path="product/:id" element={<ProductDetail />} />
+        <Route path="cart" element={<CartPage />} />
+        <Route path="checkout" element={<Checkout />} />
+        <Route path="search" element={<SearchPage />} />
+        <Route
+          path="admin"
+          element={
+            <RequireAuth>
+              <RequireRole allowed={["Admin", "Employee"]}>
+                <AdminPage />
+              </RequireRole>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="ordersDashboard"
+          element={
+            <RequireAuth>
+              <RequireRole allowed={["Admin", "Employee"]}>
+                <OrdersDashboard />
+              </RequireRole>
+            </RequireAuth>
+          }
+        />
+      </Route>
     </Routes>
-  </BrowserRouter>
+  </BrowserRouter>,
 );
