@@ -14,6 +14,14 @@ axiosClient.interceptors.request.use((config) => {
     const empId = Number(import.meta.env.VITE_DEFAULT_EMPRESA_ID) || 1;
     config.headers["X-Empresa-Id"] = empId;
   }
+  // Cuando PlatformAdmin opera dentro de /{cliente}/..., la API debe trabajar
+  // sobre ese cliente y no sobre la empresa de origen de su sesión.
+  const portalMatch = window.location.pathname.match(/^\/([^/?]+)(?:\/|$)/);
+  const portalSlug = portalMatch?.[1]?.toLowerCase();
+  const rootRoutes = new Set(["admin", "category", "product", "cart", "checkout", "search", "ordersdashboard"]);
+  if (portalSlug && !rootRoutes.has(portalSlug)) {
+    config.headers["X-Portal-Slug"] = portalSlug;
+  }
   return config;
 });
 

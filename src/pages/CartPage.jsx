@@ -2,11 +2,14 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../store/cart";
 import { formatPrice } from "../utils/format";
 import { useTenantPath } from "../utils/tenantPath";
+import { isVisitorPreview as getVisitorPreviewMode } from "../utils/visitorPreview";
 
 export default function CartPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const tenantPath = useTenantPath();
+  const isVisitorPreview = getVisitorPreviewMode(location.search);
+  const previewSuffix = isVisitorPreview ? "?preview=1" : "";
 
   // si venís con state, recordamos desde dónde
   const from = location.state?.from; // e.g. "/product/123" o "/category/2"
@@ -29,7 +32,7 @@ export default function CartPage() {
     return (
       <div>
         <p>Tu carrito está vacío.</p>
-        <Link to={tenantPath("/home")} className="underline">
+        <Link to={`${tenantPath("/home")}${previewSuffix}`} className="underline">
           Volver a comprar
         </Link>
       </div>
@@ -132,10 +135,13 @@ export default function CartPage() {
         Total: {formatPrice(totalAmount)}
       </div>
       <button
-        onClick={() => navigate(tenantPath("/checkout"))}
-        className="inline-block px-4 py-2 btn-custom"
+        onClick={() => !isVisitorPreview && navigate(tenantPath("/checkout"))}
+        disabled={isVisitorPreview}
+        aria-disabled={isVisitorPreview}
+        title={isVisitorPreview ? "El envío de pedidos está deshabilitado en la previsualización." : undefined}
+        className="inline-block px-4 py-2 btn-custom disabled:cursor-not-allowed disabled:opacity-55"
       >
-        Enviar pedido
+        {isVisitorPreview ? "Envío deshabilitado en vista previa" : "Enviar pedido"}
       </button>
     </section>
   );

@@ -1,10 +1,14 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useTenantPath } from "../utils/tenantPath";
+import { isVisitorPreview as getVisitorPreviewMode } from "../utils/visitorPreview";
 
 export default function AddToCartModal({ open, onClose, product, quantity }) {
   const tenantPath = useTenantPath();
+  const location = useLocation();
+  const isVisitorPreview = getVisitorPreviewMode(location.search);
+  const cartHref = `${tenantPath("/cart")}${isVisitorPreview ? "?preview=1" : ""}`;
   // Llamar SIEMPRE a los hooks (no retornes antes)
   useEffect(() => {
     if (!open) return; // no hacer nada si está cerrado
@@ -60,7 +64,7 @@ export default function AddToCartModal({ open, onClose, product, quantity }) {
           </button>
 
           <Link
-            to={tenantPath("/cart")}
+            to={cartHref}
             className="px-3 h-10 rounded-xl bg-zinc-900 text-yellow-400 grid place-items-center active:scale-95"
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {

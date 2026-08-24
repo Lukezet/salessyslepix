@@ -6,6 +6,7 @@ import {
 } from "../../services/publications";
 import PropertyLocationPicker from "../realestate/PropertyLocationPicker";
 import PropertyBulkImport from "./PropertyBulkImport";
+import { useTenantConfig } from "../../store/tenantConfig";
 
 const PROPERTY_TYPES = [
   [1, "Casa"],
@@ -41,6 +42,7 @@ export default function PublicationCreateDialog({ type, onClose }) {
     title: "",
     description: "",
     price: "",
+    currency: "1",
     operation: 1,
     propertyType: 1,
     totalAreaM2: "",
@@ -85,6 +87,10 @@ export default function PublicationCreateDialog({ type, onClose }) {
       );
       return;
     }
+    if (!Number.isFinite(Number(form.price)) || Number(form.price) <= 0) {
+      setError("Ingresá un precio mayor a cero.");
+      return;
+    }
     if (
       isProperty &&
       location.pinLatitude == null &&
@@ -104,7 +110,7 @@ export default function PublicationCreateDialog({ type, onClose }) {
         title: form.title,
         description: form.description,
         price: Number(form.price),
-        currency: 1,
+        currency: Number(form.currency),
       };
       if (isProperty) {
         payload.imageUrls = await Promise.all(files.map(uploadPropertyImage));
@@ -155,6 +161,14 @@ export default function PublicationCreateDialog({ type, onClose }) {
         };
       }
       await createPublication(payload);
+      if (Number(form.currency) === 1) {
+        useTenantConfig.setState((state) => ({
+          features: {
+            ...state.features,
+            components: { ...state.features.components, dollarQuote: true },
+          },
+        }));
+      }
       onClose();
     } catch (requestError) {
       setError(
@@ -253,7 +267,15 @@ export default function PublicationCreateDialog({ type, onClose }) {
               </h3>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <Input name="title" label="Título" required />
-                <Input name="price" label="Precio" type="number" required />
+                <Input name="price" label={`Precio (${Number(form.currency) === 1 ? "USD" : "ARS"})`} type="number" required />
+                <label className="grid gap-1 text-sm">
+                  <span>Moneda</span>
+                  <select value={form.currency} onChange={(event) => set("currency", event.target.value)} className="rounded-lg border px-3 py-2">
+                    <option value="1">USD — dólar estadounidense</option>
+                    <option value="2">ARS — peso argentino</option>
+                  </select>
+                  {Number(form.currency) === 1 && <span className="text-xs text-amber-800">El catálogo mostrará también el equivalente en pesos argentinos.</span>}
+                </label>
                 {isProperty && (
                   <label className="grid gap-1 text-sm">
                     <span>Operación</span>
@@ -263,7 +285,7 @@ export default function PublicationCreateDialog({ type, onClose }) {
                       className="rounded-lg border px-3 py-2"
                     >
                       <option value="1">Venta</option>
-                      <option value="2">Alquiler</option>
+                      <option value="2" disabled={Number(form.propertyType) === 3}>Alquiler</option>
                     </select>
                   </label>
                 )}
@@ -282,17 +304,19 @@ export default function PublicationCreateDialog({ type, onClose }) {
                       <span>Tipo</span>
                       <select
                         value={form.propertyType}
-                        onChange={(event) =>
-                          set("propertyType", event.target.value)
-                        }
+                        onChange={(event) => {
+                          const propertyType = event.target.value;
+                          setForm((current) => ({
+                            ...current,
+                            propertyType,
+                            operation: Number(propertyType) === 3 ? 1 : current.operation,
+                          }));
+                        }}
                         className="rounded-lg border px-3 py-2"
                       >
-                        {PROPERTY_TYPES.map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
+                        {PROPERTY_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                       </select>
+                      {Number(form.propertyType) === 3 && <span className="text-xs text-neutral-600">Los terrenos sólo se publican para venta.</span>}
                     </label>
                     {Number(form.operation) === 2 && (
                       <Input name="rentalAdjustment" label="Ajuste / aumento" />

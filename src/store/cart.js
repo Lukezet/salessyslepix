@@ -1,6 +1,19 @@
 // src/store/cart.js
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
+
+// La previsualización corre en un iframe del mismo origen que el portal real.
+// Por eso localStorage se comparte entre ambos contextos: usamos memoria en la
+// demo para que sus pruebas de carrito nunca modifiquen un pedido real.
+const isVisitorPreview =
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).get("preview") === "1";
+
+const previewCartStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
 
 function buildLineId(p) {
   // 0 = sin variante
@@ -74,6 +87,11 @@ export const useCart = create(
       totalAmount: () =>
         get().items.reduce((acc, i) => acc + i.quantity * Number(i.product.price || 0), 0),
     }),
-    { name: "lepix-cart-v2" } // ← nueva key para evitar choque con formato viejo
+    {
+      name: "lepix-cart-v2",
+      storage: createJSONStorage(() =>
+        isVisitorPreview ? previewCartStorage : window.localStorage
+      ),
+    }
   )
 );

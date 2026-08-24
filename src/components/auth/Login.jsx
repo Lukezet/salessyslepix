@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "../../store/auth";
 
 export default function Login({ open, onClose }) {
@@ -37,7 +38,7 @@ export default function Login({ open, onClose }) {
     onClose?.();
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm supports-[backdrop-filter]:bg-black/20">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 relative">
         <button
@@ -92,5 +93,6 @@ export default function Login({ open, onClose }) {
         </form>
       </div>
     </div>
+    , document.body
   );
 }

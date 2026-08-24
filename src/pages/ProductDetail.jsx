@@ -1,11 +1,28 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { getProductById } from "../services/catalog";
 import { formatPrice } from "../utils/format";
 import ImageSlider from "../components/ImageSlider";
 import AddButton from "../components/AddButton";
+import PublicationDetail from "../components/publications/PublicationDetail";
+import { useTenantConfig } from "../store/tenantConfig";
 
 export default function ProductDetail() {
+  const { id, clientSlug } = useParams();
+  const [searchParams] = useSearchParams();
+  const features = useTenantConfig((state) => state.features);
+  const appointmentsEnabled = features.realEstate && features.appointments && (features.components?.realEstateAppointments ?? true);
+  const isPublication = searchParams.get("publication") === "1";
+  if (isPublication && clientSlug) {
+    const detailsEnabled = features.components?.realEstateDetails ?? features.realEstate;
+    if (!detailsEnabled) return <section className="rounded-xl border border-neutral-200 bg-white p-6 text-neutral-700">El detalle de inmuebles no está habilitado para este portal.</section>;
+    return <PublicationDetail companySlug={clientSlug} publicationSlug={id} appointmentsEnabled={appointmentsEnabled} />;
+  }
+  if ((features.components?.storeDetails ?? features.store) === false) return <section className="rounded-xl border border-neutral-200 bg-white p-6 text-neutral-700">El detalle de productos no está habilitado para este portal.</section>;
+  return <StoreProductDetail />;
+}
+
+function StoreProductDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
   const pid = Number(id);

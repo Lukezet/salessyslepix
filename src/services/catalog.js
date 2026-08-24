@@ -245,8 +245,15 @@ export async function updateOrder(orderId, payload) {
 
 // === AUTH ===
 export async function authLogin({ email, password }) {
-  const { data } = await axiosClient.post("/api/auth/login", { email, password });
+  const { data } = await axiosClient.post("/api/auth/login", { email, password }, { withCredentials: true });
   return data; // { token, userName, email, empresaId, roles:[] }
+}
+export async function refreshAuthSession() {
+  const { data } = await axiosClient.post("/api/auth/refresh", undefined, { withCredentials: true });
+  return data;
+}
+export async function logoutAuthSession() {
+  await axiosClient.post("/api/auth/logout", undefined, { withCredentials: true });
 }
 // Helpers para setear/quitar el header global Authorization
 export function setAuthToken(token) {
@@ -285,4 +292,7 @@ export async function applyPriceIncrease({ percent, brandIds=[], providerIds=[],
   const body = { percent, brandIds, providerIds, categoryIds, excludeProductIds, affectVariantOverrides };
   const { data } = await axiosClient.post(`/api/price-adjustments/apply`, body);
   return data;
+}
+export async function changePassword({ currentPassword, newPassword }) {
+  await axiosClient.post("/api/auth/change-password", { currentPassword, newPassword });
 }

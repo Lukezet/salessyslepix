@@ -14,39 +14,47 @@ import { useTenantBranding, useTenantConfig } from "../store/tenantConfig";
 import userIcon from "../assets/user.png";
 import userOut from "../assets/logout.png";
 import Login from "./auth/Login";
+import ForcePasswordChangeModal from "./auth/ForcePasswordChangeModal";
 import DolarRefreshModal from "./DolarRefreshModal";
+import AgentScheduleDialog from "./realestate/AgentScheduleDialog";
+import { isVisitorPreview as getVisitorPreviewMode } from "../utils/visitorPreview";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [usdOpen, setUsdOpen] = useState(false);
+  const [agentScheduleOpen, setAgentScheduleOpen] = useState(false);
   const [term, setTerm] = useState("");
   const location = useLocation();
   const { clientSlug } = useParams();
   const isAuth = useAuth((s) => s.isAuthenticated);
   const roles = useAuth((s) => s.roles);
+  const authEmpresaSlug = useAuth((s) => s.empresaSlug);
   const hasPlatformAdminRole = isAuth && roles?.includes("PlatformAdmin");
-  const hasAdminRole =
-    isAuth &&
-    roles?.some((role) => role === "Admin" || role === "PlatformAdmin");
-  const isPlatformAdmin =
-    hasPlatformAdminRole && location.pathname.startsWith("/admin");
+  // /admin es siempre la consola de plataforma. Determinarlo por la ruta
+  // evita el destello amarillo mientras se restaura la sesión guardada.
+  const isPlatformAdmin = location.pathname.startsWith("/admin");
   const isCheckout = location.pathname.endsWith("/checkout");
-  const isVisitorPreview =
-    new URLSearchParams(location.search).get("preview") === "1";
+  const isVisitorPreview = getVisitorPreviewMode(location.search);
   const isPublicClientPortal = Boolean(clientSlug);
   const homeHref = isPlatformAdmin
     ? "/admin?section=clients"
     : isPublicClientPortal
       ? `/${clientSlug}/home`
       : "/";
-  const panelHref = hasPlatformAdminRole
-    ? "/admin?section=clients"
-    : clientSlug
-      ? `/${clientSlug}/admin?section=products`
-      : "/admin?section=products";
+  const cartHref = `${clientSlug ? `/${clientSlug}/cart` : "/cart"}${isVisitorPreview ? "?preview=1" : ""}`;
+  const tenantHomeHref = authEmpresaSlug ? `/${authEmpresaSlug}/home` : "/";
+  // Panel es la consola global de APIGRAFA, no el catálogo del portal actual.
+  const panelHref = "/admin?section=clients";
+  const productsHref = clientSlug
+    ? `/${clientSlug}/admin?section=products`
+    : "/admin?section=products";
   const ordersHref = clientSlug
     ? `/${clientSlug}/ordersDashboard`
     : "/ordersDashboard";
+  const coordinatorHref = clientSlug
+    ? `/${clientSlug}/admin?section=coordination`
+    : "/admin?section=coordination";
   const { rate: usdRate, load, refresh } = useUsdRate(); // 👈 usa el store
   const [openRefresh, setOpenRefresh] = useState(false);
   useEffect(() => {
@@ -114,16 +122,34 @@ export default function Navbar() {
   const canManage =
     isAuth &&
     !isPlatformAdmin &&
-    roles?.some((r) => r === "Admin" || r === "Employee");
+    roles?.some((r) => ["Admin", "Employee", "PlatformAdmin"].includes(r));
   const configuredTenant = useTenantConfig((s) => s.config);
   const tenantIsLoaded = useTenantConfig((s) => s.isLoaded);
   const featureStoreEnabled = useTenantConfig((s) => s.features.store);
+  const realEstateEnabled = useTenantConfig((s) => s.features.realEstate);
+  const appointmentsEnabled = useTenantConfig((s) => s.features.appointments);
+  const componentSettings = useTenantConfig((s) => s.features.components);
   const storeEnabled =
     !isPublicClientPortal ||
     (tenantIsLoaded &&
       configuredTenant?.slug?.toLowerCase() === clientSlug?.toLowerCase() &&
       featureStoreEnabled);
-  const showStoreNavigation = !isPlatformAdmin && storeEnabled;
+  const showStoreNavigation = !isPlatformAdmin && storeEnabled && Boolean(componentSettings?.storeCart ?? true);
+  const showDollarQuote = Boolean(componentSettings?.dollarQuote ?? featureStoreEnabled);
+  const showCoordinatorNavigation =
+    !isPlatformAdmin &&
+    realEstateEnabled &&
+    isAuth &&
+    roles?.some((role) =>
+      ["RealEstateCoordinator", "Admin", "PlatformAdmin"].includes(role),
+    );
+  const showAgentSchedule =
+    !isPlatformAdmin &&
+    realEstateEnabled &&
+    appointmentsEnabled &&
+    isAuth &&
+    roles?.includes("RealEstateAgent") &&
+    !roles?.some((role) => ["RealEstateCoordinator", "Admin", "PlatformAdmin"].includes(role));
   const userName = useAuth((s) => s.userName);
   const logout = useAuth((s) => s.logout);
   const { logoUrl } = useTenantBranding();
@@ -144,17 +170,30 @@ export default function Navbar() {
 
   return (
     <header
-      className={`${isPlatformAdmin ? "admin-navbar" : "tenant-header"} sticky top-0 z-20 rounded-b-xl sm:rounded-br-full`}
+      className={`${isPlatformAdmin ? "admin-navbar" : "tenant-header"} sticky top-0 z-[1000] rounded-b-xl sm:rounded-br-full`}
     >
       <div
-        className={`relative h-14 flex items-center ${isPlatformAdmin ? "w-full justify-end px-4 sm:px-12" : "justify-between sm:mr-12"}`}
+        className={`relative h-14 min-w-0 items-center gap-2 ${isPlatformAdmin ? "flex w-full justify-between px-4 sm:px-12" : isPublicClientPortal ? "flex px-3 xl:mr-12 xl:grid xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]" : "flex px-3 xl:mr-12"}`}
       >
+        {isPlatformAdmin && (
+          <Link
+            to="/admin?section=clients"
+            className="inline-flex items-center gap-2 font-bold tracking-tight text-slate-50"
+            aria-label="Ir al inicio de APIGRAFA"
+          >
+            <span className="grid size-8 place-items-center rounded-lg border border-sky-300/30 bg-sky-300/10 text-sky-200" aria-hidden="true">
+              <svg viewBox="0 0 24 24" className="size-4 fill-current"><path d="M3 3h7v7H3V3Zm11 0h7v7h-7V3ZM3 14h7v7H3v-7Zm11 0h7v7h-7v-7Z" /></svg>
+            </span>
+            <span>APIGRAFA</span>
+          </Link>
+        )}
+
         {isPublicClientPortal && (
           <Link
             to={homeHref}
             onClick={goHome}
             aria-label={`Ir al inicio de ${tenantName}`}
-            className="absolute left-1/2 -translate-x-1/2 active:scale-95 transition"
+            className="absolute left-1/2 shrink-0 -translate-x-1/2 active:scale-95 transition xl:static xl:col-start-2 xl:row-start-1 xl:translate-x-0"
           >
             {logoUrl ? (
               <img
@@ -172,11 +211,11 @@ export default function Navbar() {
 
         {/* Buscador (desktop) */}
         {!isPlatformAdmin && (
-          <div className="hidden sm:block w-3/12 px-4 ">
+          <div className="hidden w-auto min-w-0 flex-1 items-center gap-2 px-2 xl:col-start-1 xl:row-start-1 xl:flex">
             <form
               onSubmit={onSearchSubmit}
               role="search"
-              className="relative max-w-xl mx-auto"
+              className="relative w-full max-w-sm"
             >
               <input
                 type="text"
@@ -228,6 +267,41 @@ export default function Navbar() {
                 </svg>
               </button>
             </form>
+            {canManage && showDollarQuote && (
+              <div className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setUsdOpen((value) => !value)}
+                  className="tenant-usd-trigger"
+                  aria-expanded={usdOpen}
+                  aria-controls="usd-rate-popover"
+                  title="Cotización del dólar blue"
+                >
+                  <span>$ USD</span>
+                </button>
+                {usdOpen && (
+                  <div id="usd-rate-popover" className="tenant-usd-popover">
+                    <div className="tenant-usd-heading">
+                      <span className="tenant-usd-popover-icon" aria-hidden="true">$</span>
+                      <div><p>Tipo de cambio</p><strong>Dólar blue</strong></div>
+                      <span className="tenant-usd-status"><i />Actual</span>
+                    </div>
+                    <div className="tenant-usd-rate">
+                      <span>Cotización</span>
+                      <strong className="tabular-nums">{usdRate != null ? usdRate.toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "—"}</strong>
+                      <small>ARS</small>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleOpenModal}
+                      className="tenant-usd-update"
+                    >
+                      <span aria-hidden="true">↻</span> Actualizar cotización
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -252,10 +326,8 @@ export default function Navbar() {
         {/* carrito mobile */}
         {showStoreNavigation && (
           <NavLink
-            to={clientSlug ? `/${clientSlug}/cart` : "/cart"}
-            aria-disabled={isVisitorPreview}
-            onClick={(event) => isVisitorPreview && event.preventDefault()}
-            className={`relative sm:hidden ${isVisitorPreview ? "pointer-events-none opacity-60" : ""}`}
+            to={cartHref}
+            className="relative xl:hidden"
           >
             <span className="relative flex h-8 w-8">
               <svg
@@ -278,42 +350,6 @@ export default function Navbar() {
             </span>
           </NavLink>
         )}
-        {canManage && storeEnabled && (
-          <>
-            <span className="inline-flex items-center gap-1 text-xs sm:text-sm pl-1 sm:px-2 sm:py-1 rounded-lg border text-green-400 border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800">
-              <span className="opacity-70">USD blue:</span>
-              <strong className="tabular-nums mr-1">
-                {usdRate != null
-                  ? usdRate.toLocaleString("es-AR", {
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 2,
-                    })
-                  : "…"}
-              </strong>
-              <button
-                onClick={handleOpenModal}
-                className="border-1 rounded-md bg-neutral-700 hover:scale-110 cursor-pointer transition ease-out p-1"
-                title="Modificar / Refrescar valor"
-                aria-label="Modificar o refrescar dólar"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="size-4"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-                  />
-                </svg>
-              </button>
-            </span>
-          </>
-        )}
         {/* Modal */}
         <DolarRefreshModal
           open={openRefresh}
@@ -324,7 +360,7 @@ export default function Navbar() {
           aria-label={open ? "Cerrar menú" : "Abrir menú"}
           aria-expanded={open}
           aria-controls="mobile-menu"
-          className="sm:hidden inline-flex items-center justify-center w-10 h-10 mr-4 rounded-md active:scale-95 transition"
+          className="xl:hidden inline-flex shrink-0 items-center justify-center w-10 h-10 rounded-md active:scale-95 transition"
           onClick={() => setOpen((o) => !o)}
         >
           <span className="relative block w-6 h-4 cursor-pointer">
@@ -351,9 +387,9 @@ export default function Navbar() {
 
         {/* Nav desktop */}
         <nav
-          className={`${isPlatformAdmin ? "admin-nav" : "tenant-nav"} hidden sm:flex items-center font-semibold`}
+          className={`${isPlatformAdmin ? "admin-nav" : "tenant-nav"} ml-auto hidden shrink-0 items-center font-semibold xl:col-start-3 xl:row-start-1 xl:justify-self-end xl:flex`}
         >
-          {hasAdminRole && !isPlatformAdmin && (
+          {hasPlatformAdminRole && !isPlatformAdmin && (
             <NavLink to={panelHref}>Panel</NavLink>
           )}
           {!isPlatformAdmin && (
@@ -365,6 +401,16 @@ export default function Navbar() {
               Inicio
             </NavLink>
           )}
+          {showCoordinatorNavigation && (
+            <NavLink to={coordinatorHref} className="transition active:scale-95">
+              Coordinar
+            </NavLink>
+          )}
+          {showAgentSchedule && (
+            <button type="button" onClick={() => setAgentScheduleOpen(true)} className="transition active:scale-95">
+              Coordinar
+            </button>
+          )}
           {isPlatformAdmin && (
             <NavLink
               to="/admin?section=clients"
@@ -373,13 +419,23 @@ export default function Navbar() {
               Clientes
             </NavLink>
           )}
+          {isPlatformAdmin && (
+            <NavLink to={tenantHomeHref} className="transition active:scale-95">
+              Inicio
+            </NavLink>
+          )}
+          {isPlatformAdmin && (
+            <NavLink to="/admin?section=modules" className="transition active:scale-95">
+              Módulos
+            </NavLink>
+          )}
           {canManage && storeEnabled && (
             <>
               <NavLink to={ordersHref} className="transition active:scale-95">
                 Ventas
               </NavLink>
 
-              <NavLink to={panelHref} className="transition active:scale-95">
+              <NavLink to={productsHref} className="transition active:scale-95">
                 Productos
               </NavLink>
             </>
@@ -387,10 +443,8 @@ export default function Navbar() {
 
           {showStoreNavigation && (
             <NavLink
-              to={clientSlug ? `/${clientSlug}/cart` : "/cart"}
-              aria-disabled={isVisitorPreview}
-              onClick={(event) => isVisitorPreview && event.preventDefault()}
-              className={`relative transition active:scale-95 ${isVisitorPreview ? "pointer-events-none opacity-60" : ""}`}
+              to={cartHref}
+              className="relative transition active:scale-95"
             >
               <span className="relative flex h-8 w-8">
                 <svg
@@ -420,12 +474,15 @@ export default function Navbar() {
               onClick={() => !isVisitorPreview && setLoginOpen(true)}
               disabled={isVisitorPreview}
               aria-disabled={isVisitorPreview}
-              className={`inputRan rounded-full border px-2 py-2 transition ${isVisitorPreview ? "cursor-not-allowed opacity-60" : "hover:opacity-90 active:scale-95 cursor-pointer"}`}
+              className={isPlatformAdmin
+                ? `inline-flex h-9 w-9 shrink-0 self-center items-center justify-center rounded-full transition admin-navbar-action ${isVisitorPreview ? "cursor-not-allowed opacity-60" : "hover:opacity-90 active:scale-95 cursor-pointer"}`
+                : `tenant-account-action inputRan inline-flex h-10 shrink-0 self-center items-center justify-center rounded-full border transition ${isVisitorPreview ? "cursor-not-allowed opacity-60" : "hover:opacity-90 active:scale-95 cursor-pointer"}`}
+              style={isPlatformAdmin ? { alignSelf: "center" } : { alignSelf: "center", padding: "6px 1rem" }}
             >
               <img
                 src={userIcon}
                 alt=""
-                className="w-5 h-5 hover:scale-110 transition active:scale-90"
+                className="h-5 w-5 transition hover:scale-110 active:scale-90"
               />
             </button>
           ) : (
@@ -435,7 +492,10 @@ export default function Navbar() {
                 onClick={logout}
                 title="Cerrar sesión"
                 aria-label="Cerrar sesión"
-                className={`${isPlatformAdmin ? "admin-navbar-action" : "border"} rounded-full px-2 py-2 hover:opacity-90 active:scale-95 transition cursor-pointer`}
+                className={isPlatformAdmin
+                  ? "inline-flex h-9 w-9 shrink-0 self-center items-center justify-center rounded-full transition active:scale-95 cursor-pointer admin-navbar-action"
+                  : "tenant-account-action inputRan inline-flex h-10 shrink-0 self-center items-center justify-center rounded-full border transition active:scale-95 cursor-pointer hover:opacity-90"}
+                style={isPlatformAdmin ? { alignSelf: "center" } : { alignSelf: "center", padding: "6px 1rem" }}
               >
                 <img
                   src={userOut}
@@ -452,7 +512,7 @@ export default function Navbar() {
       <div
         id="mobile-menu"
         className={
-          "sm:hidden bg-white overflow-hidden transition-all duration-300 " +
+          "xl:hidden bg-white overflow-hidden transition-all duration-300 " +
           (open ? "max-h-72 opacity-100" : "max-h-0 opacity-0")
         }
       >
@@ -482,6 +542,15 @@ export default function Navbar() {
             </form>
           )}
 
+          {hasPlatformAdminRole && !isPlatformAdmin && (
+            <NavLink
+              to={panelHref}
+              className="hover:bg-white rounded-l-full p-2"
+              onClick={() => setOpen(false)}
+            >
+              Panel
+            </NavLink>
+          )}
           {!isPlatformAdmin && (
             <NavLink
               to={homeHref}
@@ -491,24 +560,29 @@ export default function Navbar() {
               Inicio
             </NavLink>
           )}
-          {hasAdminRole && !isPlatformAdmin && (
+          {showCoordinatorNavigation && (
             <NavLink
-              to={panelHref}
+              to={coordinatorHref}
               className="hover:bg-white rounded-l-full p-2"
               onClick={() => setOpen(false)}
             >
-              Panel
+              Coordinar
             </NavLink>
+          )}
+          {showAgentSchedule && (
+            <button
+              type="button"
+              className="hover:bg-white rounded-l-full p-2 text-left"
+              onClick={() => { setOpen(false); setAgentScheduleOpen(true); }}
+            >
+              Coordinar
+            </button>
           )}
           {showStoreNavigation && (
             <NavLink
-              to={clientSlug ? `/${clientSlug}/cart` : "/cart"}
-              aria-disabled={isVisitorPreview}
-              className={`hover:bg-white rounded-l-full p-2 ${isVisitorPreview ? "pointer-events-none opacity-60" : ""}`}
-              onClick={(event) => {
-                if (isVisitorPreview) event.preventDefault();
-                else setOpen(false);
-              }}
+              to={cartHref}
+              className="hover:bg-white rounded-l-full p-2"
+              onClick={() => setOpen(false)}
             >
               Carrito ({total})
             </NavLink>
@@ -522,10 +596,28 @@ export default function Navbar() {
               Clientes
             </NavLink>
           )}
+          {isPlatformAdmin && (
+            <NavLink
+              to={tenantHomeHref}
+              className="hover:bg-white rounded-l-full p-2"
+              onClick={() => setOpen(false)}
+            >
+              Inicio
+            </NavLink>
+          )}
+          {isPlatformAdmin && (
+            <NavLink
+              to="/admin?section=modules"
+              className="hover:bg-white rounded-l-full p-2"
+              onClick={() => setOpen(false)}
+            >
+              Módulos
+            </NavLink>
+          )}
           {canManage && storeEnabled && (
             <>
               <NavLink
-                to={panelHref}
+                to={productsHref}
                 className="hover:bg-white rounded-l-full p-2"
                 onClick={() => setOpen(false)}
               >
@@ -574,8 +666,11 @@ export default function Navbar() {
         </div>
       </div>
 
+      {agentScheduleOpen && <AgentScheduleDialog onClose={() => setAgentScheduleOpen(false)} />}
+
       {/* Modal Login */}
       <Login open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <ForcePasswordChangeModal />
     </header>
   );
 }

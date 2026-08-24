@@ -1,6 +1,34 @@
 // store/auth.js
 import { create } from "zustand";
-import { authLogin, setAuthToken } from "../services/catalog";
+import { authLogin, logoutAuthSession, refreshAuthSession, setAuthToken } from "../services/catalog";
+
+const AUTH_STORAGE_KEY = "lepix.auth.session";
+const REFRESH_MARKER_KEY = "lepix.auth.refresh-enabled";
+
+function restoreSession() {
+  try {
+    const raw = sessionStorage.getItem(AUTH_STORAGE_KEY);
+    const session = raw ? JSON.parse(raw) : null;
+    return typeof session?.token === "string" && session.token ? session : null;
+  } catch { return null; }
+}
+
+function saveSession(session) {
+  sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+  localStorage.setItem(REFRESH_MARKER_KEY, "1");
+}
+
+function sessionFromResponse(res) {
+  return {
+    token: res.token,
+    userName: res.userName,
+    email: res.email,
+    empresaId: res.empresaId,
+    empresaSlug: res.empresaSlug ?? null,
+    roles: res.roles || [],
+    mustChangePassword: Boolean(res.mustChangePassword),
+  };
+}
 
 export const useAuth = create((set) => ({
   token: null,
@@ -11,29 +39,27 @@ export const useAuth = create((set) => ({
   roles: [],
   isAuthenticated: false,
   initialized: false,
+  mustChangePassword: false,
 
-  initFromStorage: () => {
+  initFromStorage: async () => {
+    const session = restoreSession();
+    if (session) {
+      set({ ...session, isAuthenticated: true, initialized: true });
+      setAuthToken(session.token);
+      return;
+    }
+    if (localStorage.getItem(REFRESH_MARKER_KEY) !== "1") {
+      set({ initialized: true });
+      return;
+    }
     try {
-      const raw = localStorage.getItem("auth");
-      if (!raw) {
-        set({ initialized: true });
-        return;
-      }
-      const parsed = JSON.parse(raw);
-      set({
-        token: parsed.token,
-        userName: parsed.userName,
-        email: parsed.email,
-        empresaId: parsed.empresaId,
-        empresaSlug: parsed.empresaSlug ?? null,
-        roles: parsed.roles || [],
-        isAuthenticated: !!parsed.token,
-        initialized: true,
-      });
-      setAuthToken(parsed.token);
-    } catch (e) {
-      // opcional: loguear para debug, evita bloque vacío
-      console.warn("auth init error", e);
+      const restored = sessionFromResponse(await refreshAuthSession());
+      saveSession(restored);
+      set({ ...restored, isAuthenticated: true, initialized: true });
+      setAuthToken(restored.token);
+    } catch {
+      localStorage.removeItem(REFRESH_MARKER_KEY);
+      setAuthToken(null);
       set({ initialized: true });
     }
   },
@@ -41,23 +67,21 @@ export const useAuth = create((set) => ({
   login: async (email, password) => {
     const res = await authLogin({ email, password });
     // res: { token, userName, email, empresaId, roles }
-    set({
-      token: res.token,
-      userName: res.userName,
-      email: res.email,
-      empresaId: res.empresaId,
-      empresaSlug: res.empresaSlug ?? null,
-      roles: res.roles || [],
-      isAuthenticated: true,
-      initialized: true,
-    });
-    localStorage.setItem("auth", JSON.stringify(res));
+    const session = sessionFromResponse(res);
+    saveSession(session);
+    set({ ...session, isAuthenticated: true, initialized: true });
     setAuthToken(res.token);
     return res;
   },
 
+  clearPasswordChangeRequirement: () => {
+    set({ mustChangePassword: false });
+  },
+
   logout: () => {
-    localStorage.removeItem("auth");
+    void logoutAuthSession().catch(() => undefined);
+    sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(REFRESH_MARKER_KEY);
     set({
       token: null,
       userName: null,
@@ -65,6 +89,7 @@ export const useAuth = create((set) => ({
       empresaId: null,
       empresaSlug: null,
       roles: [],
+      mustChangePassword: false,
       isAuthenticated: false,
       initialized: true,
     });

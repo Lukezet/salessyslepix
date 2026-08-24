@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { getCategories } from "../services/catalog";
 import PropertyMap from "../components/realestate/PropertyMap";
 import PublicationCreateDialog from "../components/publications/PublicationCreateDialog";
-import AgentScheduleDialog from "../components/realestate/AgentScheduleDialog";
+import PublicationCatalog from "../components/publications/PublicationCatalog";
 import { useAuth } from "../store/auth";
 import { useTenantConfig } from "../store/tenantConfig";
 import { useTenantPath } from "../utils/tenantPath";
@@ -18,18 +18,17 @@ export default function Home() {
   const realEstateEnabled = useTenantConfig(
     (state) => state.features.realEstate,
   );
-  const appointmentsEnabled = useTenantConfig(
-    (state) => state.features.realEstate && state.features.appointments,
-  );
-  const interactiveMapEnabled = useTenantConfig(
+  const components = useTenantConfig((state) => state.features.components);
+  const componentEnabled = (key, fallback) => components?.[key] ?? fallback;
+  const storeCategoriesEnabled = componentEnabled("storeCategories", storeEnabled) && componentEnabled("storeCatalog", storeEnabled);
+  const interactiveMapFeatureEnabled = useTenantConfig(
     (state) => state.features.realEstate && state.features.interactiveMap,
   );
+  const interactiveMapEnabled = interactiveMapFeatureEnabled && componentEnabled("realEstateMap", true);
   const vehiclesEnabled = useTenantConfig((state) => state.features.vehicles);
   const isAuthenticated = useAuth((state) => state.isAuthenticated);
   const roles = useAuth((state) => state.roles);
   const [createType, setCreateType] = useState(null);
-  const [scheduleOpen, setScheduleOpen] = useState(false);
-  console.log("renderhome");
   const load = async () => {
     try {
       setErr(null);
@@ -45,28 +44,20 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (storeEnabled) load();
+    if (storeCategoriesEnabled) load();
     else {
       setCats([]);
       setLoading(false);
     }
-  }, [storeEnabled]);
+  }, [storeCategoriesEnabled]);
 
-  const isRealEstateAgent = roles?.some((role) =>
-    [
-      "RealEstateAgent",
-      "RealEstateCoordinator",
-      "Admin",
-      "PlatformAdmin",
-    ].includes(role),
-  );
-  const isRealEstateCoordinator = roles?.some((role) =>
-    ["RealEstateCoordinator", "Admin", "PlatformAdmin"].includes(role),
+  const canManageRealEstatePublications = roles?.some((role) =>
+    ["RealEstateAgent", "RealEstateCoordinator", "Admin", "PlatformAdmin"].includes(role),
   );
   const realEstateActions = isAuthenticated &&
     (realEstateEnabled || vehiclesEnabled) && (
       <div className="flex flex-wrap gap-2">
-        {realEstateEnabled && isRealEstateCoordinator && (
+        {realEstateEnabled && canManageRealEstatePublications && (
           <button
             type="button"
             onClick={() => setCreateType("property")}
@@ -88,15 +79,7 @@ export default function Home() {
             Crear inmueble
           </button>
         )}
-        {appointmentsEnabled && isRealEstateAgent && (
-          <button
-            onClick={() => setScheduleOpen(true)}
-            className="rounded-lg border border-neutral-300 bg-white px-4 py-2 font-medium hover:bg-neutral-50"
-          >
-            Mi agenda de visitas
-          </button>
-        )}
-        {vehiclesEnabled && (
+        {vehiclesEnabled && canManageRealEstatePublications && (
           <button
             type="button"
             onClick={() => setCreateType("vehicle")}
@@ -116,21 +99,27 @@ export default function Home() {
       </div>
     );
 
-  if (!storeEnabled) {
+  if (!storeCategoriesEnabled) {
     return (
       <>
         {realEstateActions && <div className="mb-4">{realEstateActions}</div>}
         {interactiveMapEnabled && config?.slug && (
           <PropertyMap companySlug={config.slug} />
         )}
+        {(componentEnabled("realEstateCatalog", realEstateEnabled) || componentEnabled("vehicleCatalog", vehiclesEnabled)) && config?.slug && (
+          <PublicationCatalog
+            companySlug={config.slug}
+            showProperties={componentEnabled("realEstateCatalog", realEstateEnabled)}
+            showVehicles={componentEnabled("vehicleCatalog", vehiclesEnabled)}
+            showPropertyDetails={componentEnabled("realEstateDetails", realEstateEnabled)}
+            showVehicleDetails={componentEnabled("vehicleDetails", vehiclesEnabled)}
+          />
+        )}
         {createType && (
           <PublicationCreateDialog
             type={createType}
             onClose={() => setCreateType(null)}
           />
-        )}
-        {scheduleOpen && (
-          <AgentScheduleDialog onClose={() => setScheduleOpen(false)} />
         )}
       </>
     );
@@ -192,14 +181,20 @@ export default function Home() {
       {interactiveMapEnabled && config?.slug && (
         <PropertyMap companySlug={config.slug} />
       )}
+      {(componentEnabled("realEstateCatalog", realEstateEnabled) || componentEnabled("vehicleCatalog", vehiclesEnabled)) && config?.slug && (
+        <PublicationCatalog
+          companySlug={config.slug}
+          showProperties={componentEnabled("realEstateCatalog", realEstateEnabled)}
+          showVehicles={componentEnabled("vehicleCatalog", vehiclesEnabled)}
+          showPropertyDetails={componentEnabled("realEstateDetails", realEstateEnabled)}
+          showVehicleDetails={componentEnabled("vehicleDetails", vehiclesEnabled)}
+        />
+      )}
       {createType && (
         <PublicationCreateDialog
           type={createType}
           onClose={() => setCreateType(null)}
         />
-      )}
-      {scheduleOpen && (
-        <AgentScheduleDialog onClose={() => setScheduleOpen(false)} />
       )}
     </section>
   );

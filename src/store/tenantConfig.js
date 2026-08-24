@@ -10,6 +10,7 @@ export const DEFAULT_FEATURES = Object.freeze({
   appointments: false,
   googleCalendar: false,
   publicExactAddress: false,
+  components: {},
 });
 
 export const DEFAULT_BRANDING = Object.freeze({
@@ -67,6 +68,7 @@ function normalizeFeatures(config) {
     appointments: Boolean(source.appointments ?? source.Appointments ?? source.visits),
     googleCalendar: Boolean(source.googleCalendar ?? source.GoogleCalendar ?? source.calendar),
     publicExactAddress: Boolean(source.publicExactAddress ?? source.PublicExactAddress),
+    components: source.components ?? source.Components ?? {},
   };
 }
 

@@ -1,11 +1,13 @@
 // src/admin/AdminPage.jsx
 import { useCallback, useEffect, useMemo, useState,Fragment, } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { getProductsPaginated, deleteProduct, setProductVariantDisabled } from "../../services/catalog";
 import PriceIncreasePanel from "../../components/Admin/PriceIncreasePanel";
 import ProductForm from "../../components/Admin/ProductForm";
 import ClientsPage from "./ClientsPage";
 import ClientCreatePage from "./ClientCreatePage";
+import CoordinatorSchedulePage from "./CoordinatorSchedulePage";
+import ModulesPage from "./ModulesPage";
 import { useAuth } from "../../store/auth";
 
 function formatPrice(n) {
@@ -129,7 +131,7 @@ const filtered = useMemo(() => {
   };
 
   return (
-    <section className="admin-premium"><div className="admin-shell space-y-6">
+    <section className="admin-premium tenant-product"><div className="admin-shell space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
         <div className="flex-1"><h1 className="admin-title">Gestión de productos.</h1><p className="admin-subtitle mt-3">Inventario, variantes y precios con una vista clara para operar rápido.</p></div>
         <div className="flex items-center gap-2">
@@ -200,7 +202,7 @@ const filtered = useMemo(() => {
                      {def ? (
                        def.isDisabled ? (
                          <button
-                           className="btn-custom px-2 py-1 rounded border text-xs hover:bg-green-50"
+                           className="admin-secondary px-2 py-1 text-xs"
                            onClick={() => toggleVariantDisabled(def.id, false)}
                            disabled={toggling === def.id}
                            title="Habilitar variante (default)"
@@ -212,7 +214,7 @@ const filtered = useMemo(() => {
                          </button>
                        ) : (
                          <button
-                           className="btn-custom px-2 py-1 rounded border text-xs hover:bg-green-50"
+                           className="admin-secondary px-2 py-1 text-xs"
                            onClick={() => toggleVariantDisabled(def.id, true)}
                            disabled={toggling === def.id}
                            title="Habilitar variante (default)"
@@ -227,7 +229,7 @@ const filtered = useMemo(() => {
                    </td>
                     <td className="py-2 pr-2">
                       <div className="flex gap-2 justify-end">
-                        <button className="px-2 py-1 btn-custom" onClick={() => onEdit(p.id)}>Editar</button>
+                        <button className="admin-primary px-2 py-1" onClick={() => onEdit(p.id)}>Editar</button>
                         <button className="px-2 btn-danger py-1" onClick={() => onDelete(p.id)}>Eliminar</button>
                       </div>
                     </td>
@@ -268,7 +270,7 @@ const filtered = useMemo(() => {
                       <td className="py-2 pr-2">
                        {v.isDisabled ? (
                          <button
-                           className="btn-custom px-2 py-1 rounded border text-xs hover:bg-green-50"
+                           className="admin-secondary px-2 py-1 text-xs"
                            onClick={() => toggleVariantDisabled(v.id, false)}
                            disabled={toggling === v.id}
                            title="Habilitar variante"
@@ -280,7 +282,7 @@ const filtered = useMemo(() => {
                          </button>
                        ) : (
                           <button
-                           className="btn-custom px-2 py-1 rounded border text-xs hover:bg-green-50"
+                           className="admin-secondary px-2 py-1 text-xs"
                            onClick={() => toggleVariantDisabled(v.id, true)}
                            disabled={toggling === v.id}
                            title="Habilitar variante"
@@ -382,6 +384,31 @@ const filtered = useMemo(() => {
   );
 }
 
+function PanelOverview() {
+  return <section className="admin-premium min-h-full"><div className="admin-shell space-y-6">
+    <div>
+      <h1 className="admin-title">Panel de administración.</h1>
+      <p className="admin-subtitle mt-3">Elegí qué parte de tu operación querés gestionar.</p>
+    </div>
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <Link to="?section=products" className="admin-glass rounded-2xl p-6 transition hover:-translate-y-0.5 hover:border-sky-300/50">
+        <h2 className="text-lg font-bold text-white">Productos</h2>
+        <p className="mt-2 text-sm text-slate-300">Catálogo, variantes, stock y aumentos de precios.</p>
+        <span className="mt-5 inline-block text-sm font-semibold text-sky-200">Gestionar productos →</span>
+      </Link>
+      <Link to="?section=coordination" className="admin-glass rounded-2xl p-6 transition hover:-translate-y-0.5 hover:border-sky-300/50">
+        <h2 className="text-lg font-bold text-white">Coordinación</h2>
+        <p className="mt-2 text-sm text-slate-300">Disponibilidad de asesores, visitas y agenda semanal.</p>
+        <span className="mt-5 inline-block text-sm font-semibold text-sky-200">Abrir coordinación →</span>
+      </Link>
+      <div className="admin-glass rounded-2xl p-6">
+        <h2 className="text-lg font-bold text-white">Operación</h2>
+        <p className="mt-2 text-sm text-slate-300">Usá la navegación superior para acceder a Ventas, Inicio y los módulos habilitados.</p>
+      </div>
+    </div>
+  </div></section>;
+}
+
 export default function AdminPage() {
   const [searchParams] = useSearchParams();
   const section = searchParams.get("section");
@@ -390,7 +417,10 @@ export default function AdminPage() {
   // route hosts these platform screens until the router is extracted.
   if (section === "clients") return <ClientsPage />;
   if (section === "clients-new") return <ClientCreatePage />;
+  if (section === "coordination") return <CoordinatorSchedulePage />;
+  if (section === "modules" && isPlatformAdmin) return <ModulesPage />;
   if (section === "products") return <ProductAdminPage />;
+  if (section === "panel") return isPlatformAdmin ? <ClientsPage /> : <PanelOverview />;
   if (isPlatformAdmin) return <ClientsPage />;
-  return <ProductAdminPage />;
+  return <PanelOverview />;
 }

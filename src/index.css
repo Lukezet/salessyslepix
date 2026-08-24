@@ -105,6 +105,13 @@
   width: 1px;
   background: color-mix(in srgb, currentColor 28%, transparent);
 }
+/* El botón de cuenta es más bajo para quedar dentro de la barra. Su divisor
+   conserva la altura de los enlaces que ocupan todo el navbar. */
+.tenant-nav > .tenant-account-action::before {
+  left: -.85rem;
+  top: -1px;
+  bottom: -1px;
+}
 .tenant-nav > *:hover {
   background: transparent;
   box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--tenant-color-on-primary) 68%, transparent);
@@ -112,6 +119,39 @@
 .tenant-nav { align-self: stretch; }
 .tenant-nav > div { display: inline-flex; align-items: center; gap: .5rem; }
 .tenant-nav > div:hover { background: transparent; box-shadow: none; }
+
+/* Indicador compacto de cotización: adopta la identidad del portal sin competir
+   con la navegación principal. */
+.tenant-usd-trigger {
+  display: inline-flex;
+  height: 2.2rem;
+  align-items: center;
+  gap: .25rem;
+  border: 1px solid color-mix(in srgb, var(--tenant-color-on-primary) 38%, transparent);
+  border-radius: 999px;
+  padding: 0 .78rem;
+  color: var(--tenant-color-on-primary);
+  font-size: .76rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+  background: color-mix(in srgb, var(--tenant-color-on-primary) 11%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 48%, transparent);
+  transition: transform .16s ease, background .16s ease, box-shadow .16s ease;
+}
+.tenant-usd-trigger:hover { background: color-mix(in srgb, var(--tenant-color-on-primary) 20%, transparent); box-shadow: 0 7px 18px rgba(15,23,42,.16); transform: translateY(-1px); }
+.tenant-usd-popover { position: absolute; left: 0; top: 2.85rem; z-index: 40; width: 16rem; overflow: hidden; border: 1px solid rgba(15,23,42,.13); border-radius: 1rem; background: #fff; color: #0f172a; box-shadow: 0 20px 45px rgba(15,23,42,.20); }
+.tenant-usd-heading { display: flex; align-items: center; gap: .65rem; padding: .8rem .85rem; color: var(--tenant-color-on-primary); background: linear-gradient(135deg, var(--tenant-color-primary), color-mix(in srgb, var(--tenant-color-primary) 72%, #111827)); }
+.tenant-usd-popover-icon { display: grid; width: 2rem; height: 2rem; place-items: center; border-radius: .65rem; background: color-mix(in srgb, #fff 20%, transparent); font-weight: 900; font-size: 1.1rem; }
+.tenant-usd-heading p { margin: 0; font-size: .65rem; font-weight: 650; opacity: .78; text-transform: uppercase; letter-spacing: .08em; }
+.tenant-usd-heading strong { display: block; margin-top: .08rem; font-size: .84rem; }
+.tenant-usd-status { display: inline-flex; align-items: center; gap: .28rem; margin-left: auto; font-size: .62rem; font-weight: 800; }
+.tenant-usd-status i { width: .38rem; height: .38rem; border-radius: 99px; background: #5eead4; box-shadow: 0 0 0 3px rgba(94,234,212,.18); }
+.tenant-usd-rate { display: grid; grid-template-columns: 1fr auto; align-items: end; padding: .85rem; background: linear-gradient(180deg, #fff, #f8fafc); }
+.tenant-usd-rate > span { grid-column: 1 / -1; color: #64748b; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.tenant-usd-rate strong { margin-top: .2rem; font-size: 1.65rem; line-height: 1; letter-spacing: -.055em; }
+.tenant-usd-rate small { margin-bottom: .08rem; color: #64748b; font-size: .68rem; font-weight: 800; }
+.tenant-usd-update { display: flex; width: calc(100% - 1.7rem); align-items: center; justify-content: center; gap: .38rem; margin: 0 .85rem .85rem; border: 1px solid color-mix(in srgb, var(--tenant-color-primary) 38%, #cbd5e1); border-radius: .65rem; padding: .55rem .7rem; background: color-mix(in srgb, var(--tenant-color-primary) 7%, #fff); color: #0f172a; font-size: .74rem; font-weight: 800; transition: background .16s ease, transform .16s ease; }
+.tenant-usd-update:hover { background: color-mix(in srgb, var(--tenant-color-primary) 16%, #fff); transform: translateY(-1px); }
 
 .admin-navbar {
   background: #0b1728;
@@ -122,17 +162,40 @@
 .admin-navbar-action:hover { border-color: rgba(125, 211, 252, .75); background: rgba(125, 211, 252, .06); }
 .admin-nav {
   align-self: stretch;
-  gap: .75rem;
+  gap: 0;
   padding-left: 1rem;
 }
 .admin-nav > a {
+  position: relative;
   display: inline-flex;
+  align-self: stretch;
   align-items: center;
   min-height: 0;
-  padding: 0 .65rem;
+  padding: 0 1.15rem;
   color: #e2e8f0;
 }
-.admin-nav > a:hover { color: #f8fafc; box-shadow: inset 0 -2px 0 #7dd3fc; }
+.admin-nav > a:hover { color: #f8fafc; box-shadow: none; }
+.admin-nav > a:hover::after {
+  position: absolute;
+  right: 1.15rem;
+  bottom: 0;
+  left: 1.15rem;
+  content: "";
+  border-bottom: 2px solid #7dd3fc;
+}
+.admin-nav > a + a,
+.admin-nav > a + div { position: relative; }
+.admin-nav > a + div { padding-left: 1.15rem; }
+.admin-nav > a + a::before,
+.admin-nav > a + div::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 26px;
+  content: "";
+  transform: translateY(-50%);
+  border-left: 1px solid rgba(255, 255, 255, .72);
+}
 .admin-navbar, .admin-navbar *, .admin-premium h1, .admin-premium h2, .admin-premium h3, .admin-premium .admin-title {
   font-family: var(--heading-font);
 }
@@ -186,3 +249,54 @@
 .admin-premium table thead { color: #94a3b8; background: rgba(255,255,255,.03); }
 .admin-premium table tr { border-color: var(--admin-line); }
 .admin-premium table tbody tr:hover { background: rgba(255,255,255,.045) !important; }
+
+/* Coordinación se renderiza dentro del portal del cliente: usa su superficie,
+   no la consola oscura global de APIGRAFA. */
+.tenant-coordination.admin-premium {
+  --admin-ink: #0f172a;
+  --admin-muted: #475569;
+  --admin-line: rgba(15, 23, 42, .14);
+  --admin-panel: #ffffff;
+}
+.tenant-coordination.admin-premium::before { background: var(--tenant-color-surface, #ffffff); }
+.tenant-coordination .admin-title { color: #0f172a; }
+.tenant-coordination .admin-glass { box-shadow: 0 10px 30px rgba(15, 23, 42, .06); }
+.tenant-coordination .admin-primary,
+.tenant-coordination .admin-secondary {
+  border-color: rgba(15, 23, 42, .24);
+  background: #ffffff;
+  color: #0f172a;
+}
+.tenant-coordination .admin-primary:hover,
+.tenant-coordination .admin-secondary:hover {
+  border-color: var(--tenant-color-primary, #0f172a);
+  background: color-mix(in srgb, var(--tenant-color-primary, #0f172a) 8%, #ffffff);
+  color: #0f172a;
+}
+.tenant-coordination .admin-chip { border-color: rgba(15, 23, 42, .18); background: #f8fafc; color: #334155; }
+
+/* Productos comparte la superficie del portal del cliente, igual que Inicio. */
+.tenant-product.admin-premium {
+  --admin-ink: #0f172a;
+  --admin-muted: #475569;
+  --admin-line: rgba(15, 23, 42, .14);
+  --admin-panel: #ffffff;
+}
+.tenant-product.admin-premium::before { background: var(--tenant-color-surface, #ffffff); }
+.tenant-product .admin-title { color: #0f172a; }
+.tenant-product .admin-glass { box-shadow: 0 10px 30px rgba(15, 23, 42, .06); }
+.tenant-product .admin-primary,
+.tenant-product .admin-secondary {
+  border-color: rgba(15, 23, 42, .24);
+  background: #ffffff;
+  color: #0f172a;
+}
+.tenant-product .admin-primary:hover,
+.tenant-product .admin-secondary:hover {
+  border-color: var(--tenant-color-primary, #0f172a);
+  background: color-mix(in srgb, var(--tenant-color-primary, #0f172a) 8%, #ffffff);
+  color: #0f172a;
+}
+.tenant-product table { color: #0f172a; }
+.tenant-product table thead { color: #475569; background: #f8fafc; }
+.tenant-product table tbody tr:hover { background: #f8fafc !important; }

@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useEffect, useLayoutEffect } from "react";
+import { useParams } from "react-router-dom";
 import { useTenantBranding, useTenantConfig } from "../../store/tenantConfig";
 
 const CSS_VARIABLES = {
@@ -12,7 +12,7 @@ const CSS_VARIABLES = {
 };
 
 function faviconHref(logoUrl, isPublicPortal) {
-  if (!isPublicPortal || !logoUrl) return "/vite.svg";
+  if (!isPublicPortal || !logoUrl) return "/panel.svg";
 
   // No se puede añadir una query string a una data URL: pasa a formar parte de
   // la imagen y deja de ser válida. Las URLs remotas sí se cache-bustean al
@@ -35,10 +35,12 @@ function faviconMimeType(href) {
 export default function TenantBranding() {
   const { logoUrl, theme } = useTenantBranding();
   const tenantName = useTenantConfig((state) => state.config?.name ?? "Lepix");
-  const location = useLocation();
-  const isPublicPortal = Boolean(location.pathname.match(/^\/[^/]+(?:\/home)?$/));
+  const { clientSlug } = useParams();
+  // La ruta /admin también coincide con una ruta de un segmento; usamos el
+  // parámetro real del router para no confundir el panel con un portal público.
+  const isPublicPortal = Boolean(clientSlug);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = document.documentElement;
     Object.entries(CSS_VARIABLES).forEach(([key, variable]) => {
       root.style.setProperty(variable, theme[key]);
@@ -56,8 +58,13 @@ export default function TenantBranding() {
     let shortcut = document.querySelector("link[rel='shortcut icon']");
     if (!shortcut) { shortcut = document.createElement("link"); shortcut.rel = "shortcut icon"; document.head.append(shortcut); }
     shortcut.href = href;
-    document.title = isPublicPortal ? tenantName : "Lepix";
   }, [isPublicPortal, logoUrl, tenantName, theme]);
+
+  // Se aplica en cada render para que el nombre de la pestaña también se
+  // actualice en una sesión de desarrollo ya abierta.
+  useEffect(() => {
+    document.title = isPublicPortal ? tenantName : "APIGRAFA";
+  });
 
   return null;
 }

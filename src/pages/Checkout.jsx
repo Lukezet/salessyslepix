@@ -1,9 +1,13 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useCart } from "../store/cart";
 import { createOrder, getEmpresaPhoneNumber  } from "../services/catalog";
 import { formatPrice } from "../utils/format";
+import { isVisitorPreview as getVisitorPreviewMode } from "../utils/visitorPreview";
 
 export default function Checkout() {
+  const location = useLocation();
+  const isVisitorPreview = getVisitorPreviewMode(location.search);
   const items = useCart((s) => s.items);
   const totalAmount = useCart((s) => s.totalAmount());
   const clear = useCart((s) => s.clear);
@@ -38,7 +42,7 @@ export default function Checkout() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (loading) return;
+    if (loading || isVisitorPreview) return;
     setLoading(true);
 
     try {
@@ -87,6 +91,13 @@ export default function Checkout() {
         <p>Tu pedido fue enviado. Te contactaremos a la brevedad.</p>
       </div>
     );
+  }
+
+  if (isVisitorPreview) {
+    return <section className="max-w-xl rounded-xl border border-amber-300 bg-amber-50 p-5 text-amber-950">
+      <h1 className="text-xl font-semibold">Envío deshabilitado en vista previa</h1>
+      <p className="mt-2 text-sm">Esta demostración no permite abrir ni enviar formularios de pedido.</p>
+    </section>;
   }
 
   return (
@@ -141,10 +152,11 @@ export default function Checkout() {
         </div>
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || isVisitorPreview}
+          title={isVisitorPreview ? "El envío de pedidos está deshabilitado en la previsualización." : undefined}
           className="btn-custom px-4 py-2 rounded-xl border hover:shadow disabled:opacity-50 active:scale-95"
         >
-          {loading ? "Enviando..." : "Enviar pedido"}
+          {isVisitorPreview ? "Envío deshabilitado en vista previa" : loading ? "Enviando..." : "Enviar pedido"}
         </button>
       </form>
     </section>

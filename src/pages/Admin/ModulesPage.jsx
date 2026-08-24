@@ -1,0 +1,33 @@
+import { useEffect, useMemo, useState } from "react";
+import { listPlatformCompanies, updatePlatformCompany } from "../../services/companies";
+
+const MODULES = [
+  { key: "store", label: "Tienda", detail: "Experiencia de productos y pedidos." },
+  { key: "realEstate", label: "Inmuebles", detail: "Publicaciones y visitas." },
+  { key: "vehicles", label: "Vehículos", detail: "Catálogo automotor." },
+];
+const BLOCKS = [
+  ["storeCategories", "store", "Categorías", "Grilla de categorías del inicio."], ["storeCatalog", "store", "Catálogo", "Listado y búsqueda de productos."], ["storeDetails", "store", "Detalle de producto", "Galería, variantes y ficha."], ["storeCart", "store", "Carrito y checkout", "Agregar productos y enviar pedido."], ["dollarQuote", "store", "Precio dólar", "Indicador y modal de cotización reutilizable."],
+  ["realEstateMap", "realEstate", "Mapa", "Marcadores públicos de inmuebles."], ["realEstateCatalog", "realEstate", "Catálogo de inmuebles", "Tarjetas de inmuebles debajo del mapa."], ["realEstateDetails", "realEstate", "Más detalle de inmueble", "Ficha y galería del inmueble."], ["realEstateAppointments", "realEstate", "Coordinar visita", "Disponibilidad y solicitud de visita."],
+  ["vehicleCatalog", "vehicles", "Catálogo de vehículos", "Listado de vehículos."], ["vehicleDetails", "vehicles", "Más detalle de vehículo", "Ficha, atributos y galería."],
+];
+const placementKey = (blockKey, moduleKey) => `placement:${blockKey}:${moduleKey}`;
+function defaultEnabled(company, key) {
+  const f = company.features ?? {}, d = { storeCategories: f.store, storeCatalog: f.store, storeDetails: f.store, storeCart: f.store, dollarQuote: f.store, realEstateMap: f.realEstate && f.interactiveMap, realEstateCatalog: f.realEstate, realEstateDetails: f.realEstate, realEstateAppointments: f.realEstate && f.appointments, vehicleCatalog: f.vehicles, vehicleDetails: f.vehicles };
+  return f.components?.[key] ?? d[key] ?? false;
+}
+function assignmentOf(company, key, fallback) { const c = company.features?.components ?? {}; return MODULES.find((m) => c[placementKey(key, m.key)])?.key ?? fallback; }
+function completeFeatures(company, components) {
+  const f = company.features ?? {}, t = company.branding?.theme ?? {};
+  return { ...f, components, interactiveMap: Boolean(f.realEstate && f.interactiveMap), customBranding: Boolean(company.branding?.logoUrl), logoUrl: company.branding?.logoUrl ?? null, primaryColor: t.primary, secondaryColor: t.secondary, accentColor: t.accent, surfaceColor: t.surface, onPrimaryColor: t.onPrimary };
+}
+
+export default function ModulesPage() {
+  const [companies, setCompanies] = useState([]), [selectedId, setSelectedId] = useState(""), [saving, setSaving] = useState(""), [message, setMessage] = useState(""), [draggingKey, setDraggingKey] = useState("");
+  useEffect(() => { listPlatformCompanies().then(({ companies: rows }) => { setCompanies(rows); setSelectedId(String(rows[0]?.id ?? "")); }); }, []);
+  const company = useMemo(() => companies.find((item) => String(item.id) === selectedId), [companies, selectedId]);
+  const save = async (components, notice, busyKey) => { if (!company) return; setSaving(busyKey); setMessage(""); try { const updated = await updatePlatformCompany(company.id, { isActive: company.isActive, features: completeFeatures(company, components) }); setCompanies((rows) => rows.map((item) => String(item.id) === String(updated.id) ? updated : item)); setMessage(notice); } catch (error) { setMessage(error.message || "No se pudo guardar el tablero."); } finally { setSaving(""); } };
+  const setEnabled = (key, enabled) => save({ ...(company.features?.components ?? {}), [key]: enabled }, `${enabled ? "Habilitado" : "Deshabilitado"}: ${key}.`, key);
+  const move = (key, target) => { const components = { ...(company.features?.components ?? {}) }; MODULES.forEach((m) => { components[placementKey(key, m.key)] = m.key === target; }); setDraggingKey(""); save(components, `Bloque movido a ${MODULES.find((m) => m.key === target)?.label}.`, `move:${key}`); };
+  return <section className="admin-premium"><div className="admin-shell space-y-7"><div><h1 className="admin-title">Módulos a medida.</h1><p className="admin-subtitle mt-3">Arrastrá bloques entre módulos, como un tablero visual. Se permiten combinaciones libres y se guardan por empresa.</p></div><label className="block max-w-md"><span className="mb-2 block text-sm font-semibold text-slate-100">Empresa</span><select className="inputRan w-full px-3 py-2.5" value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>{companies.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>{!company ? <div className="h-64 animate-pulse rounded-2xl bg-slate-800/70" /> : <><div className="admin-glass rounded-2xl p-4 text-sm text-slate-300">Configurando <strong className="text-white">{company.name}</strong>. Arrastrá un bloque a la columna elegida; todos los checks quedan disponibles.</div><div className="grid gap-5 lg:grid-cols-3">{MODULES.map((module) => <article key={module.key} onDragOver={(e) => e.preventDefault()} onDrop={() => draggingKey && move(draggingKey, module.key)} className={`min-h-80 rounded-2xl border p-5 transition ${draggingKey ? "border-sky-300/60 bg-sky-300/5" : "admin-card"}`}><h2 className="text-lg font-bold text-white">{module.label}</h2><p className="mt-1 text-sm text-slate-400">{module.detail}</p><div className="mt-5 space-y-2">{BLOCKS.filter(([key, fallback]) => assignmentOf(company, key, fallback) === module.key).sort(([leftKey], [rightKey]) => Number(defaultEnabled(company, rightKey)) - Number(defaultEnabled(company, leftKey))).map(([key, , label, detail]) => <label key={key} draggable onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; setDraggingKey(key); }} onDragEnd={() => setDraggingKey("")} className={`flex cursor-grab items-start gap-3 rounded-xl border border-slate-600/70 bg-slate-950/30 p-3 text-sm active:cursor-grabbing ${draggingKey === key ? "opacity-50" : ""}`}><input className="mt-1" type="checkbox" disabled={saving === key} checked={defaultEnabled(company, key)} onChange={(e) => setEnabled(key, e.target.checked)} onDragStart={(e) => e.stopPropagation()} /><span><strong className="block text-slate-100">{label}</strong><small className="text-slate-400">{detail}</small></span><span className="ml-auto text-slate-500" aria-label="Arrastrar bloque">⠿</span></label>)}</div><p className="mt-5 text-xs text-slate-500">Soltá aquí un bloque para agregarlo a {module.label}.</p></article>)}</div>{message && <p role="status" className="rounded-xl border border-sky-300/25 bg-sky-300/10 px-4 py-3 text-sm text-sky-100">{message}</p>}</>}</div></section>;
+}

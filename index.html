@@ -2,9 +2,24 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link id="app-favicon" rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link id="app-favicon" rel="icon" type="image/svg+xml" href="/panel.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lepix</title>
+    <title>APIGRAFA</title>
+    <script>
+      // El panel tiene una identidad fija. Esto también protege el título
+      // durante la carga inicial, antes de que React restaure la sesión.
+      if (window.location.pathname === "/admin") {
+        const panelTitle = "APIGRAFA";
+        document.title = panelTitle;
+        new MutationObserver(() => {
+          if (document.title !== panelTitle) document.title = panelTitle;
+        }).observe(document.querySelector("title"), {
+          childList: true,
+          characterData: true,
+          subtree: true,
+        });
+      }
+    </script>
     <link href="/src/index.css" rel="stylesheet">
   </head>
   <body>

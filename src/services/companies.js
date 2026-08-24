@@ -59,7 +59,7 @@ function normalizeCompany(company) {
   const existingTheme = company.branding?.theme ?? {};
   return {
     ...company,
-    features: { ...features, store: features.store ?? company.slug === "lepix" },
+    features: { ...features, store: features.store ?? company.slug === "lepix", components: features.components ?? features.Components ?? {} },
     branding: {
       logoUrl: resolveLogoUrl(company.branding?.logoUrl ?? features.logoUrl),
       theme: {
