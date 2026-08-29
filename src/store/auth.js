@@ -64,8 +64,8 @@ export const useAuth = create((set) => ({
     }
   },
 
-  login: async (email, password) => {
-    const res = await authLogin({ email, password });
+  login: async (email, password, portalSlug = null) => {
+    const res = await authLogin({ email, password, portalSlug });
     // res: { token, userName, email, empresaId, roles }
     const session = sessionFromResponse(res);
     saveSession(session);

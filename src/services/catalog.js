@@ -244,8 +244,8 @@ export async function updateOrder(orderId, payload) {
 }
 
 // === AUTH ===
-export async function authLogin({ email, password }) {
-  const { data } = await axiosClient.post("/api/auth/login", { email, password }, { withCredentials: true });
+export async function authLogin({ email, password, portalSlug }) {
+  const { data } = await axiosClient.post("/api/auth/login", { email, password, portalSlug }, { withCredentials: true });
   return data; // { token, userName, email, empresaId, roles:[] }
 }
 export async function refreshAuthSession() {

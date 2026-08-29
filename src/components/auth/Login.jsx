@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { useParams } from "react-router-dom";
 import { useAuth } from "../../store/auth";
 
 export default function Login({ open, onClose }) {
   const login = useAuth((s) => s.login);
+  const { clientSlug } = useParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,7 +19,7 @@ export default function Login({ open, onClose }) {
     setLoading(true);
     
     try {
-      await login(email, password);
+      await login(email, password, clientSlug ?? "lepix");
       onClose?.();
     } catch (error) {
       // El interceptor ya procesó el error, solo mostrar el mensaje
