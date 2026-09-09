@@ -58,7 +58,7 @@ export default function Login({ open, onClose }) {
             <label className="block text-sm font-medium mb-1">Email</label>
             <input
               type="email"
-              className="w-full inputRan border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+              className="w-full inputRan border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--tenant-color-primary)] focus:border-transparent"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoFocus
@@ -71,7 +71,7 @@ export default function Login({ open, onClose }) {
             <label className="block text-sm font-medium mb-1">Contraseña</label>
             <input
               type="password"
-              className="w-full inputRan border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+              className="w-full inputRan border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--tenant-color-primary)] focus:border-transparent"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required

@@ -1,3 +1,4 @@
+import GuideButton from "../../components/guides/GuideButton";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import BrandingEditor from "../../components/branding/BrandingEditor";
@@ -34,7 +35,7 @@ export default function ClientsPage() {
           <h1 className="admin-title">Tus clientes, con otra presencia.</h1>
           <p className="admin-subtitle mt-3">Administrá cada portal, revisá su identidad y abrí la experiencia pública desde un solo lugar.</p>
         </div>
-        <Link to="/admin?section=clients-new" className="admin-primary px-5 py-3 text-center"><span aria-hidden="true">+</span> Crear empresa</Link>
+        <GuideButton tour="clients" className="admin-secondary" /><Link data-tour="client-create" to="/admin?section=clients-new" className="admin-primary px-5 py-3 text-center"><span aria-hidden="true">+</span> Crear empresa</Link>
       </div>
 
       <div className="admin-glass flex flex-col gap-4 rounded-2xl p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -49,7 +50,7 @@ export default function ClientsPage() {
       )}
 
       {loading ? <div className="h-56 animate-pulse rounded-2xl bg-slate-800/70" /> : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div data-tour="client-list" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((company) => {
             const theme = company.branding?.theme ?? {};
             return <article className="admin-card group overflow-hidden rounded-2xl transition duration-200 hover:-translate-y-1 hover:border-amber-300/40" key={company.id}>

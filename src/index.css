@@ -45,7 +45,7 @@
 
 .inputRan {
   border-radius: 10px;
-  outline: 2px solid #FEBF00;
+  outline: 2px solid var(--tenant-color-primary);
   border: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   background-color: #f1f1f1;
@@ -62,7 +62,7 @@
 }
 .inputRanBlack {
   border-radius: 10px;
-  outline: 2px solid #FEBF00;
+  outline: 2px solid var(--tenant-color-primary);
   border: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   background-color: #363636;
@@ -73,6 +73,19 @@
 .inputRanBlack:focus {
   outline-offset: 5px;
   background-color: #fff
+}
+
+/* Native fields also need an explicit focus color: browser/device defaults
+   otherwise bypass the tenant palette when a field does not use inputRan. */
+.tenant-portal :where(input, textarea, select):focus {
+  outline: 2px solid var(--tenant-color-primary);
+  outline-offset: 2px;
+  --tw-ring-color: var(--tenant-color-primary);
+}
+.admin-premium :where(input, textarea, select):focus {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 2px;
+  --tw-ring-color: #7dd3fc;
 }
 .cardNeo {
   width: 80%;
@@ -230,8 +243,8 @@
 .admin-subtitle { color: var(--admin-muted); max-width: 42rem; }
 .admin-glass { background: var(--admin-panel); border: 1px solid var(--admin-line); box-shadow: 0 20px 60px rgba(0, 0, 0, .23); backdrop-filter: blur(16px); }
 .admin-card { background: linear-gradient(145deg, rgba(30, 41, 59, .9), rgba(15, 23, 42, .85)); border: 1px solid var(--admin-line); box-shadow: 0 16px 36px rgba(0,0,0,.18); }
-.admin-premium .inputRan { background: rgba(255,255,255,.95); outline: 0; border: 1px solid rgba(255,255,255,.3); color: #0f172a; }
-.admin-premium .inputRan:focus { border-color: rgba(125, 211, 252, .8); box-shadow: 0 0 0 3px rgba(14, 165, 233, .16); }
+.admin-premium .inputRan, .admin-premium .inputRanBlack { background: rgba(255,255,255,.95); outline: 0; border: 1px solid rgba(255,255,255,.3); color: #0f172a; }
+.admin-premium .inputRan:focus, .admin-premium .inputRanBlack:focus { border-color: rgba(125, 211, 252, .8); box-shadow: 0 0 0 3px rgba(14, 165, 233, .16); }
 .admin-primary, .admin-secondary { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border: 1px solid rgba(148, 163, 184, .42); border-radius: .65rem; background: transparent; color: #e2e8f0; font-weight: 650; transition: border-color .16s ease, color .16s ease, background .16s ease; }
 .admin-primary:hover, .admin-secondary:hover { border-color: rgba(125, 211, 252, .75); background: rgba(125, 211, 252, .06); color: #f8fafc; }
 .admin-primary:active, .admin-secondary:active { border-color: #38bdf8; background: rgba(56, 189, 248, .13); }

@@ -1,4 +1,8 @@
+import GuideButton from "../guides/GuideButton";
 import { useState } from "react";
+import MediaAddButton from "../MediaAddButton";
+import VideoPicker from "../VideoPicker";
+import { uploadVideo, videosEnabled } from "../../services/videos";
 import {
   createPublication,
   uploadPropertyImage,
@@ -31,8 +35,40 @@ const EMPTY_LOCATION = {
   pinLongitude: null,
 };
 
-export default function PublicationCreateDialog({ type, onClose }) {
+// Stable component identities keep focused fields mounted while typing.
+  const Input = ({ form, set, name, label, type = "text", required = false }) => (
+    <label className="grid gap-1 text-sm">
+      <span>{label}</span>
+      <input
+        required={required}
+        type={type}
+        min={type === "number" ? "0" : undefined}
+        value={form[name]}
+        onChange={(event) => set(name, event.target.value)}
+        className="rounded-lg border px-3 py-2"
+      />
+    </label>
+  );
+  const Choice = ({ form, set, name, label }) => (
+    <label className="grid gap-1 text-sm">
+      <span>{label}</span>
+      <select
+        value={form[name]}
+        onChange={(event) => set(name, event.target.value)}
+        className="rounded-lg border px-3 py-2"
+      >
+        <option value="">No especificar</option>
+        <option value="yes">Sí</option>
+        <option value="no">No</option>
+      </select>
+    </label>
+  );
+
+export default function PublicationCreateDialog({ type, onClose, onSaved }) {
   const isProperty = type === "property";
+  const features = useTenantConfig((state) => state.features);
+  const category = isProperty ? "realEstate" : "vehicles";
+  const [videoFiles, setVideoFiles] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [mode, setMode] = useState("manual");
@@ -160,12 +196,15 @@ export default function PublicationCreateDialog({ type, onClose }) {
           isFirstOwner: bool(form.isFirstOwner),
         };
       }
-      await createPublication(payload);
+      if (videosEnabled(features, category)) payload.videoUrls = await Promise.all(videoFiles.map((file) => uploadVideo(file, category)));
+      payload.publish = true;
+      const saved = await createPublication(payload);
+      onSaved?.(saved);
       if (Number(form.currency) === 1) {
         useTenantConfig.setState((state) => ({
           features: {
             ...state.features,
-            components: { ...state.features.components, dollarQuote: true },
+            components: { ...state.features.components, dollarQuote: state.features.components?.dollarQuote ?? true },
           },
         }));
       }
@@ -174,39 +213,12 @@ export default function PublicationCreateDialog({ type, onClose }) {
       setError(
         requestError.response?.data?.error ||
           requestError.message ||
-          "No se pudo guardar el borrador.",
+          "No se pudo guardar la publicaci�n.",
       );
     } finally {
       setSaving(false);
     }
   };
-  const Input = ({ name, label, type = "text", required = false }) => (
-    <label className="grid gap-1 text-sm">
-      <span>{label}</span>
-      <input
-        required={required}
-        type={type}
-        min={type === "number" ? "0" : undefined}
-        value={form[name]}
-        onChange={(event) => set(name, event.target.value)}
-        className="rounded-lg border px-3 py-2"
-      />
-    </label>
-  );
-  const Choice = ({ name, label }) => (
-    <label className="grid gap-1 text-sm">
-      <span>{label}</span>
-      <select
-        value={form[name]}
-        onChange={(event) => set(name, event.target.value)}
-        className="rounded-lg border px-3 py-2"
-      >
-        <option value="">No especificar</option>
-        <option value="yes">Sí</option>
-        <option value="no">No</option>
-      </select>
-    </label>
-  );
   return (
     <div
       className="fixed inset-0 z-[1000] grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm"
@@ -220,6 +232,7 @@ export default function PublicationCreateDialog({ type, onClose }) {
       >
         <div className="flex items-start justify-between gap-4">
           <div>
+            <GuideButton tour="publication" disabled={saving} />
             <h2 className="text-xl font-bold text-slate-950">
               {isProperty ? "Crear inmueble" : "Crear vehículo"}
             </h2>
@@ -261,20 +274,20 @@ export default function PublicationCreateDialog({ type, onClose }) {
           </div>
         ) : (
           <>
-            <section className="mt-5 rounded-xl border border-slate-200 p-4">
+            <section data-tour="publication-main" className="mt-5 rounded-xl border border-slate-200 p-4">
               <h3 className="font-semibold text-slate-900">
                 Datos principales
               </h3>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <Input name="title" label="Título" required />
-                <Input name="price" label={`Precio (${Number(form.currency) === 1 ? "USD" : "ARS"})`} type="number" required />
+                <Input form={form} set={set} name="title" label="Título" required />
+                <Input form={form} set={set} name="price" label={`Precio (${Number(form.currency) === 1 ? "USD" : "ARS"})`} type="number" required />
                 <label className="grid gap-1 text-sm">
                   <span>Moneda</span>
                   <select value={form.currency} onChange={(event) => set("currency", event.target.value)} className="rounded-lg border px-3 py-2">
                     <option value="1">USD — dólar estadounidense</option>
                     <option value="2">ARS — peso argentino</option>
                   </select>
-                  {Number(form.currency) === 1 && <span className="text-xs text-amber-800">El catálogo mostrará también el equivalente en pesos argentinos.</span>}
+                  {Number(form.currency) === 1 && <span className="text-xs text-slate-600">La publicación mostrará también el equivalente en pesos argentinos.</span>}
                 </label>
                 {isProperty && (
                   <label className="grid gap-1 text-sm">
@@ -319,13 +332,13 @@ export default function PublicationCreateDialog({ type, onClose }) {
                       {Number(form.propertyType) === 3 && <span className="text-xs text-neutral-600">Los terrenos sólo se publican para venta.</span>}
                     </label>
                     {Number(form.operation) === 2 && (
-                      <Input name="rentalAdjustment" label="Ajuste / aumento" />
+                      <Input form={form} set={set} name="rentalAdjustment" label="Ajuste / aumento" />
                     )}
                   </>
                 ) : (
                   <>
-                    <Input name="make" label="Marca" required />
-                    <Input name="model" label="Modelo" required />
+                    <Input form={form} set={set} name="make" label="Marca" required />
+                    <Input form={form} set={set} name="model" label="Modelo" required />
                   </>
                 )}
               </div>
@@ -339,41 +352,41 @@ export default function PublicationCreateDialog({ type, onClose }) {
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 {isProperty ? (
                   <>
-                    <Input
+                    <Input form={form} set={set}
                       name="totalAreaM2"
                       label="m² totales"
                       type="number"
                     />
-                    <Input
+                    <Input form={form} set={set}
                       name="coveredAreaM2"
                       label="m² cubiertos"
                       type="number"
                     />
-                    <Input
+                    <Input form={form} set={set}
                       name="ageYears"
                       label="Antigüedad (años)"
                       type="number"
                     />
-                    <Input name="rooms" label="Ambientes" type="number" />
-                    <Input name="bedrooms" label="Dormitorios" type="number" />
-                    <Input name="bathrooms" label="Baños" type="number" />
-                    <Input name="garages" label="Cocheras" type="number" />
-                    <Input name="orientation" label="Orientación" />
-                    <Choice name="petsAllowed" label="¿Permite mascotas?" />
-                    <Choice name="childrenAllowed" label="¿Permite niños?" />
-                    <Choice name="isCreditEligible" label="¿Apto crédito?" />
-                    <Choice name="isGatedCommunity" label="¿Barrio cerrado?" />
+                    <Input form={form} set={set} name="rooms" label="Ambientes" type="number" />
+                    <Input form={form} set={set} name="bedrooms" label="Dormitorios" type="number" />
+                    <Input form={form} set={set} name="bathrooms" label="Baños" type="number" />
+                    <Input form={form} set={set} name="garages" label="Cocheras" type="number" />
+                    <Input form={form} set={set} name="orientation" label="Orientación" />
+                    <Choice form={form} set={set} name="petsAllowed" label="¿Permite mascotas?" />
+                    <Choice form={form} set={set} name="childrenAllowed" label="¿Permite niños?" />
+                    <Choice form={form} set={set} name="isCreditEligible" label="¿Apto crédito?" />
+                    <Choice form={form} set={set} name="isGatedCommunity" label="¿Barrio cerrado?" />
                   </>
                 ) : (
                   <>
-                    <Input name="version" label="Versión" />
-                    <Input name="year" label="Año" type="number" />
-                    <Input name="mileageKm" label="Kilometraje" type="number" />
-                    <Input name="color" label="Color" />
-                    <Input name="fuelType" label="Combustible" />
-                    <Input name="transmission" label="Transmisión" />
-                    <Input name="bodyType" label="Carrocería" />
-                    <Input name="doors" label="Puertas" type="number" />
+                    <Input form={form} set={set} name="version" label="Versión" />
+                    <Input form={form} set={set} name="year" label="Año" type="number" />
+                    <Input form={form} set={set} name="mileageKm" label="Kilometraje" type="number" />
+                    <Input form={form} set={set} name="color" label="Color" />
+                    <Input form={form} set={set} name="fuelType" label="Combustible" />
+                    <Input form={form} set={set} name="transmission" label="Transmisión" />
+                    <Input form={form} set={set} name="bodyType" label="Carrocería" />
+                    <Input form={form} set={set} name="doors" label="Puertas" type="number" />
                     <label className="grid gap-1 text-sm">
                       <span>Estado</span>
                       <select
@@ -387,45 +400,21 @@ export default function PublicationCreateDialog({ type, onClose }) {
                         <option value="1">Nuevo</option>
                       </select>
                     </label>
-                    <Choice name="isFirstOwner" label="¿Primer dueño?" />
+                    <Choice form={form} set={set} name="isFirstOwner" label="¿Primer dueño?" />
                   </>
                 )}
               </div>
             </details>
-            <section className="mt-4 rounded-xl border border-slate-200 p-4">
+            <section data-tour="publication-media" className="mt-4 rounded-xl border border-slate-200 p-4">
               <h3 className="font-semibold">
                 Fotos del {isProperty ? "inmueble" : "vehículo"}
               </h3>
               <p className="mt-1 text-sm text-neutral-600">
                 Subí 3 a 12 imágenes. La primera será la portada.
               </p>
-              <input
-                id={`${isProperty ? "property" : "vehicle"}-photos`}
-                className="sr-only"
-                accept="image/*"
-                type="file"
-                multiple
-                onChange={(event) => {
-                  addFiles(event.target.files);
-                  event.target.value = "";
-                }}
-              />
-              <label
-                htmlFor={`${isProperty ? "property" : "vehicle"}-photos`}
-                className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-sky-700 bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-800 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-sky-700"
-              >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M12 16V4m0 0-4 4m4-4 4 4M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
-                </svg>
-                Seleccionar fotos
-              </label>
+              {videosEnabled(features, category)
+                ? <div data-tour="publication-videos"><VideoPicker files={videoFiles} onChange={setVideoFiles} disabled={saving} imagePicker={<MediaAddButton onFiles={addFiles} disabled={saving || files.length >= 12} />} /></div>
+                : <div className="mt-3"><MediaAddButton onFiles={addFiles} disabled={saving || files.length >= 12} /></div>}
               <span className="ml-3 text-sm text-neutral-600">
                 {files.length
                   ? `${files.length} foto(s) seleccionada(s)`
@@ -455,14 +444,14 @@ export default function PublicationCreateDialog({ type, onClose }) {
               )}
             </section>
             {isProperty && (
-              <PropertyLocationPicker value={location} onChange={setLocation} />
+              <div data-tour="publication-location"><PropertyLocationPicker value={location} onChange={setLocation} /></div>
             )}
             {error && (
               <p className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">
                 {error}
               </p>
             )}
-            <div className="mt-5 flex justify-end gap-2">
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
               <button
                 type="button"
                 onClick={onClose}
@@ -471,10 +460,10 @@ export default function PublicationCreateDialog({ type, onClose }) {
                 Cancelar
               </button>
               <button
-                disabled={saving}
+                type="submit" data-tour="publication-submit" disabled={saving}
                 className="btn-custom rounded-lg px-5 py-2.5 disabled:opacity-60"
               >
-                {saving ? "Guardando…" : "Guardar borrador"}
+                {saving ? "Creando…" : isProperty ? "Crear inmueble" : "Crear vehículo"}
               </button>
             </div>
           </>

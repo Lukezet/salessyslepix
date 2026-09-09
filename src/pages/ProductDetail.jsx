@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { getProductById } from "../services/catalog";
 import { formatPrice } from "../utils/format";
-import ImageSlider from "../components/ImageSlider";
+import DetailMediaGallery from "../components/DetailMediaGallery";
 import AddButton from "../components/AddButton";
 import PublicationDetail from "../components/publications/PublicationDetail";
 import { useTenantConfig } from "../store/tenantConfig";
@@ -14,8 +14,6 @@ export default function ProductDetail() {
   const appointmentsEnabled = features.realEstate && features.appointments && (features.components?.realEstateAppointments ?? true);
   const isPublication = searchParams.get("publication") === "1";
   if (isPublication && clientSlug) {
-    const detailsEnabled = features.components?.realEstateDetails ?? features.realEstate;
-    if (!detailsEnabled) return <section className="rounded-xl border border-neutral-200 bg-white p-6 text-neutral-700">El detalle de inmuebles no está habilitado para este portal.</section>;
     return <PublicationDetail companySlug={clientSlug} publicationSlug={id} appointmentsEnabled={appointmentsEnabled} />;
   }
   if ((features.components?.storeDetails ?? features.store) === false) return <section className="rounded-xl border border-neutral-200 bg-white p-6 text-neutral-700">El detalle de productos no está habilitado para este portal.</section>;
@@ -149,7 +147,9 @@ const gallery = useMemo(() => {
         {loading ? (
           <div className="h-72 w-full rounded-xl bg-neutral-200 animate-pulse" />
         ) : product ? (
-          <ImageSlider key={selectedVariant?.id ?? "no-variant"} images={gallery} alt={product.name} />
+          <>
+          <DetailMediaGallery key={selectedVariant?.id ?? "no-variant"} images={gallery} alt={product.name} urls={product.videoUrls ?? []} category="store" />
+          </>
         ) : null}
       </div>
 

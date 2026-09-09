@@ -29,6 +29,12 @@ export default function Home() {
   const isAuthenticated = useAuth((state) => state.isAuthenticated);
   const roles = useAuth((state) => state.roles);
   const [createType, setCreateType] = useState(null);
+  const [publicationRevision, setPublicationRevision] = useState(0);
+  const [publicationNotice, setPublicationNotice] = useState("");
+  const saved = () => {
+    setPublicationRevision((value) => value + 1);
+    setPublicationNotice("Publicación creada. Ya está visible en el portal.");
+  };
   const load = async () => {
     try {
       setErr(null);
@@ -60,7 +66,7 @@ export default function Home() {
         {realEstateEnabled && canManageRealEstatePublications && (
           <button
             type="button"
-            onClick={() => setCreateType("property")}
+            data-tour="portal-create-property" onClick={() => setCreateType("property")}
             className="btn-custom inline-flex items-center gap-2 rounded-lg px-4 py-2"
           >
             <svg
@@ -82,7 +88,7 @@ export default function Home() {
         {vehiclesEnabled && canManageRealEstatePublications && (
           <button
             type="button"
-            onClick={() => setCreateType("vehicle")}
+            data-tour="portal-create-vehicle" onClick={() => setCreateType("vehicle")}
             className="btn-custom inline-flex items-center gap-2 rounded-lg px-4 py-2"
           >
             <svg
@@ -102,12 +108,13 @@ export default function Home() {
   if (!storeCategoriesEnabled) {
     return (
       <>
+        {publicationNotice && <p role="status" className="mb-4 text-sm">{publicationNotice}</p>}
         {realEstateActions && <div className="mb-4">{realEstateActions}</div>}
         {interactiveMapEnabled && config?.slug && (
-          <PropertyMap companySlug={config.slug} />
+          <PropertyMap refreshKey={publicationRevision} companySlug={config.slug} />
         )}
         {(componentEnabled("realEstateCatalog", realEstateEnabled) || componentEnabled("vehicleCatalog", vehiclesEnabled)) && config?.slug && (
-          <PublicationCatalog
+          <PublicationCatalog refreshKey={publicationRevision}
             companySlug={config.slug}
             showProperties={componentEnabled("realEstateCatalog", realEstateEnabled)}
             showVehicles={componentEnabled("vehicleCatalog", vehiclesEnabled)}
@@ -118,7 +125,7 @@ export default function Home() {
         {createType && (
           <PublicationCreateDialog
             type={createType}
-            onClose={() => setCreateType(null)}
+            onSaved={saved} onClose={() => setCreateType(null)}
           />
         )}
       </>
@@ -126,7 +133,8 @@ export default function Home() {
   }
 
   return (
-    <section className="w-full">
+    <section data-tour="portal-categories" className="w-full">
+      {publicationNotice && <p role="status" className="mb-4 text-sm">{publicationNotice}</p>}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">Categorías</h1>
         {err && (
@@ -179,10 +187,10 @@ export default function Home() {
       )}
       {realEstateActions && <div className="mt-6">{realEstateActions}</div>}
       {interactiveMapEnabled && config?.slug && (
-        <PropertyMap companySlug={config.slug} />
+        <PropertyMap refreshKey={publicationRevision} companySlug={config.slug} />
       )}
       {(componentEnabled("realEstateCatalog", realEstateEnabled) || componentEnabled("vehicleCatalog", vehiclesEnabled)) && config?.slug && (
-        <PublicationCatalog
+        <PublicationCatalog refreshKey={publicationRevision}
           companySlug={config.slug}
           showProperties={componentEnabled("realEstateCatalog", realEstateEnabled)}
           showVehicles={componentEnabled("vehicleCatalog", vehiclesEnabled)}
@@ -193,7 +201,7 @@ export default function Home() {
       {createType && (
         <PublicationCreateDialog
           type={createType}
-          onClose={() => setCreateType(null)}
+          onSaved={saved} onClose={() => setCreateType(null)}
         />
       )}
     </section>

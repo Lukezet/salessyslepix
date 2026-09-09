@@ -1,0 +1,44 @@
+.driver-popover.lepix-guide { max-width: min(360px, calc(100vw - 28px)); color: #172033; font-family: inherit; border-radius: 16px; }
+.lepix-guide .driver-popover-title { font-size: 19px; line-height: 1.3; }
+.lepix-guide .driver-popover-description { font-size: 14px; line-height: 1.6; }
+.lepix-guide .driver-popover-footer button { padding: 8px 12px; border-radius: 8px; font-size: 13px; text-shadow: none; }
+.lepix-guide .driver-popover-next-btn { background: #164e63; color: white; border-color: #164e63; }
+.lepix-guide .driver-popover-next-btn:hover { background: #0e3b4c; color: white; }
+.lepix-guide button:focus-visible { outline: 2px solid #0891b2; outline-offset: 3px; }
+.lepix-guide .driver-popover-close-btn { width: 36px; height: 36px; color: #334155; }
+
+.floating-guide {
+  --help-bg: var(--tenant-color-primary, #164e63);
+  --help-text: var(--tenant-color-on-primary, #fff);
+  position: fixed;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 1200;
+  font-family: inherit;
+}
+.floating-guide-admin { --help-bg: #164e63; --help-text: #fff; }
+.floating-guide[hidden] { display: none; }
+.floating-guide-trigger {
+  display: grid; place-items: center; width: 56px; height: 56px;
+  border: 1px solid #ffffff50; border-radius: 50%; cursor: pointer;
+  background: var(--help-bg); color: var(--help-text);
+  box-shadow: 0 5px 20px #0003; font-size: 30px; font-weight: 700;
+}
+.floating-guide-bubble {
+  position: absolute; right: 0; bottom: 72px;
+  width: min(320px, calc(100vw - 40px)); padding: 24px 20px 20px;
+  border: 1px solid #dbe3ed; border-radius: 20px;
+  background: #fff; color: #172033; box-shadow: 0 10px 36px #0003;
+}
+.floating-guide-bubble::after {
+  content: ""; position: absolute; right: 20px; bottom: -8px;
+  width: 14px; height: 14px; background: #fff; transform: rotate(45deg);
+  border-right: 1px solid #dbe3ed; border-bottom: 1px solid #dbe3ed;
+}
+.floating-guide-bubble h2 { margin: 0 14px 10px 0; font-size: 18px; font-weight: 700; line-height: 1.4; }
+.floating-guide-bubble p { margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #526075; }
+.floating-guide-close { position: absolute; right: 6px; top: 6px; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; color: #526075; }
+.floating-guide-start { width: 100%; padding: 11px 14px; border-radius: 10px; background: var(--help-bg); color: var(--help-text); font-size: 14px; font-weight: 600; cursor: pointer; }
+.floating-guide-start:disabled { opacity: .6; cursor: wait; }
+.floating-guide button:focus-visible { outline: 3px solid #38bdf8; outline-offset: 3px; }
+@media (max-height: 480px) { .floating-guide-bubble { max-height: calc(100dvh - 110px); overflow-y: auto; } }

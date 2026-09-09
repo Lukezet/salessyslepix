@@ -1,6 +1,10 @@
 // src/admin/ProductForm.jsx
 import { useEffect, useMemo, useState } from "react";
 import FilePicker from "../FilePicker";
+import MediaAddButton from "../MediaAddButton";
+import VideoPicker from "../VideoPicker";
+import { useTenantConfig } from "../../store/tenantConfig";
+import { uploadVideo, videosEnabled } from "../../services/videos";
 import { slugify } from "../../lib/slugify";
 import {
   listBrands,
@@ -42,6 +46,8 @@ export default function ProductForm({
   productId = null,
   onSaved,
 }) {
+  const features = useTenantConfig((state) => state.features);
+  const [videoFiles, setVideoFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
@@ -129,6 +135,7 @@ useEffect(() => {
   // Mapear API → Form (admin)
   function fromApiToForm(p) {
     return {
+      videoUrls: p.videoUrls ?? [],
       name: p.name ?? "",
       description: p.description ?? "",
       price: Number(p.price ?? 0),
@@ -368,6 +375,8 @@ const save = async () => {
 
     // Clonar el form actual
     const payload = { ...form };
+    if (videosEnabled(features, "store")) payload.videoUrls = [...(form.videoUrls ?? []), ...await Promise.all(videoFiles.map((file) => uploadVideo(file, "store")))];
+    else delete payload.videoUrls;
     console.log()
     // Subir imágenes de cada variante
     payload.variants = await Promise.all(
@@ -687,16 +696,10 @@ const save = async () => {
 
                   {/* Imágenes de variante */}
                   <div className="mt-3">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium">Imágenes de esta variante</div>
-                      <div className="w-64">
-                        <FilePicker
-                          label="Seleccionar imágenes"
-                          onFiles={async (files) => { await addVariantFiles(idx, files); }}
-                          multiple
-                          accept="image/*"
-                          compact
-                        />
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">Imágenes de esta variante · videos de la publicación</div>
+                      <div className="w-full">
+                        {videosEnabled(features, "store") ? <VideoPicker files={videoFiles} onChange={setVideoFiles} urls={form.videoUrls ?? []} onUrlsChange={(videoUrls) => setForm((current) => ({ ...current, videoUrls }))} disabled={saving} imagePicker={<MediaAddButton onFiles={(files) => addVariantFiles(idx, files)} disabled={saving} />} /> : <MediaAddButton onFiles={(files) => addVariantFiles(idx, files)} disabled={saving} />}
                       </div>
                     </div>
 
@@ -725,6 +728,7 @@ const save = async () => {
           </div>
         )}
       </div>
+
 
       <div className="flex justify-end gap-2">
         <button

@@ -1,11 +1,32 @@
+import { useTenantConfig } from "../store/tenantConfig";
+import { searchableModules, MODULE_DICTIONARY } from "../services/moduleDictionary";
+import PublicationCatalog from "../components/publications/PublicationCatalog";
 // src/pages/SearchPage.jsx
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useParams } from "react-router-dom";
 import { searchProducts } from "../services/catalog";
 import { formatPrice } from "../utils/format";
 import AddButton from "../components/AddButton";
 import { useTenantPath } from "../utils/tenantPath";
 export default function SearchPage() {
+  const features = useTenantConfig((state) => state.features);
+  const config = useTenantConfig((state) => state.config);
+  const { clientSlug } = useParams();
+  const [params] = useSearchParams();
+  const query = (params.get("q") ?? "").trim();
+  const modules = searchableModules(features);
+  return <div>
+    {modules.includes("store") && <StoreSearchPage />}
+    {!modules.includes("store") && <h1 className="p-4 text-xl font-semibold">Resultados para “{query}”</h1>}
+    {(modules.includes("realEstate") || modules.includes("vehicles")) && query && <PublicationCatalog
+      companySlug={clientSlug ?? config?.slug} searchQuery={query}
+      showProperties={modules.includes("realEstate")} showVehicles={modules.includes("vehicles")}
+      showPropertyDetails={features.components?.realEstateDetails !== false}
+      showVehicleDetails={features.components?.vehicleDetails !== false} />}
+    {!modules.length && <p className="p-4">No hay publicaciones habilitadas para buscar.</p>}
+  </div>;
+}
+function StoreSearchPage() {
   const tenantPath = useTenantPath();
   const [sp] = useSearchParams();
   const q = (sp.get("q") || "").trim();
@@ -24,7 +45,6 @@ export default function SearchPage() {
         setLoading(true);
         setError("");
         const res = await searchProducts({ q });
-        console.log(res);
         if (!cancel) setItems(res.items ?? res); // soporta {items:[]} o []
       } catch (e) {
         if (!cancel) setError(e?.message || "Error al buscar");
@@ -57,7 +77,7 @@ export default function SearchPage() {
       {loading && <p className="text-sm text-gray-500">Buscando…</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
       {!loading && !error && q && items.length === 0 && (
-        <p className="text-sm text-gray-500">No se encontraron artículos.</p>
+        <p className="text-sm text-gray-500">{MODULE_DICTIONARY.store.empty}</p>
       )}
 
       <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">

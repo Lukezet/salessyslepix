@@ -1,3 +1,4 @@
+import { moduleDictionary, matchesPublication } from "../../services/moduleDictionary";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getPublicPublications } from "../../services/publications";
@@ -21,8 +22,9 @@ function operation(item) {
   return item.operation === "Rent" || item.operation === "rent" || Number(item.operation) === 2 ? "Alquiler" : "Venta";
 }
 
-export default function PublicationCatalog({ companySlug, showProperties, showVehicles, showPropertyDetails = true, showVehicleDetails = true }) {
+export default function PublicationCatalog({ companySlug, showProperties, showVehicles, showPropertyDetails = true, showVehicleDetails = true, searchQuery = "", refreshKey = 0 }) {
   const tenantPath = useTenantPath();
+  const words = moduleDictionary({ realEstate: Boolean(showProperties), vehicles: Boolean(showVehicles) });
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -34,13 +36,13 @@ export default function PublicationCatalog({ companySlug, showProperties, showVe
     setLoading(true);
     setError("");
     getPublicPublications(companySlug, { signal: controller.signal })
-      .then((data) => setItems(data.filter((item) => (isProperty(item) ? showProperties : showVehicles))))
+      .then((data) => setItems(data.filter((item) => (isProperty(item) ? showProperties : showVehicles) && matchesPublication(item, searchQuery))))
       .catch((requestError) => {
-        if (requestError?.name !== "CanceledError") setError("No se pudo cargar el catálogo.");
+        if (requestError?.name !== "CanceledError") setError("No se pudieron cargar las publicaciones.");
       })
       .finally(() => !controller.signal.aborted && setLoading(false));
     return () => controller.abort();
-  }, [companySlug, showProperties, showVehicles]);
+  }, [companySlug, showProperties, showVehicles, searchQuery, refreshKey]);
 
   useEffect(() => {
     if (items.some(isUsd) && usdRate == null) loadUsdRate();
@@ -48,10 +50,10 @@ export default function PublicationCatalog({ companySlug, showProperties, showVe
 
   if (loading) return <section className="mt-8"><div className="h-7 w-56 animate-pulse rounded bg-neutral-200" /><div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[1, 2, 3].map((item) => <div key={item} className="overflow-hidden rounded-2xl border border-neutral-200"><div className="h-48 animate-pulse bg-neutral-200" /><div className="space-y-3 p-4"><div className="h-5 w-2/3 animate-pulse rounded bg-neutral-200" /><div className="h-4 animate-pulse rounded bg-neutral-100" /></div></div>)}</div></section>;
   if (error) return <section className="mt-8 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</section>;
-  if (!items.length) return <section className="mt-8 rounded-2xl border border-neutral-200 bg-white p-6 text-sm text-neutral-600">Aún no hay publicaciones disponibles.</section>;
+  if (!items.length) return <section className="mt-8 rounded-2xl border border-neutral-200 bg-white p-6 text-sm text-neutral-600">{searchQuery ? words.empty : "Aún no hay publicaciones disponibles."}</section>;
 
-  return <section className="mt-8">
-    <div className="mb-4"><h2 className="text-2xl font-semibold">{showProperties ? "Inmuebles disponibles" : "Vehículos disponibles"}</h2><p className="mt-1 text-sm text-neutral-600">Conocé las publicaciones y consultá sus detalles.</p></div>
+  return <section data-tour="portal-catalog" className="mt-8">
+    <div className="mb-4"><h2 className="text-2xl font-semibold">{showProperties && showVehicles ? "Inmuebles y vehículos disponibles" : showProperties ? "Inmuebles disponibles" : "Vehículos disponibles"}</h2><p className="mt-1 text-sm text-neutral-600">Conocé las publicaciones y consultá sus detalles.</p></div>
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((item) => {
         const cover = coverOf(item);
@@ -63,7 +65,7 @@ export default function PublicationCatalog({ companySlug, showProperties, showVe
         const detailsEnabled = property ? showPropertyDetails : showVehicleDetails;
         return <article key={item.id} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
           <div className="h-48 bg-neutral-100 bg-cover bg-center" style={cover ? { backgroundImage: `url(${cover})` } : undefined}>
-            <span className="m-3 inline-flex rounded-full bg-black/75 px-2.5 py-1 text-xs font-semibold text-white">{operation(item)}</span>
+            {!cover && <span className="block px-4 pt-16 text-center text-sm text-neutral-500">Sin imágenes</span>}<span className="m-3 inline-flex rounded-full bg-black/75 px-2.5 py-1 text-xs font-semibold text-white">{operation(item)}</span>
           </div>
           <div className="p-4"><h3 className="text-lg font-semibold">{item.title ?? item.name}</h3><p className="mt-1 min-h-5 text-sm text-neutral-600">{subtitle || (property ? "Inmueble" : "Vehículo")}</p><p className="mt-3 text-xl font-bold">{money(item.price, isUsd(item) ? "USD" : "ARS")} <span className={`text-sm font-semibold ${isUsd(item) ? "rounded-full bg-amber-100 px-2 py-0.5 text-amber-900" : "text-neutral-500"}`}>{isUsd(item) ? "USD" : "ARS"}</span></p>{isUsd(item) && typeof usdRate === "number" && <p className="mt-1 text-sm text-neutral-500">({money(Number(item.price) * usdRate, "ARS")} ARS)</p>}{detailsEnabled ? <Link className="mt-4 inline-flex w-full justify-center rounded-lg border border-neutral-900 px-3 py-2 text-sm font-semibold transition hover:bg-neutral-900 hover:text-white" to={`${tenantPath(`/product/${item.slug}`)}?publication=1`}>Más detalle</Link> : <p className="mt-4 text-sm text-neutral-500">Detalle no habilitado.</p>}</div>
         </article>;

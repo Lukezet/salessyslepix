@@ -18,7 +18,7 @@ const statusStyle = {
   Rejected: "border-red-300 bg-red-50/70",
   Cancelled: "border-slate-300 bg-slate-50",
 };
-const statusLabel = { Pending: "Pendiente", Confirmed: "Confirmada", Rejected: "Rechazada", Cancelled: "Cancelada" };
+const statusLabel = { Pending: "Pendiente", Confirmed: "Confirmada", Rejected: "Rechazada", Cancelled: "Cancelada", Expired: "Vencida" };
 
 export default function AgentScheduleDialog({ onClose }) {
   const [availability, setAvailability] = useState([]); const [requests, setRequests] = useState([]);

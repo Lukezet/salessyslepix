@@ -1,3 +1,5 @@
+import { moduleDictionary } from "../services/moduleDictionary";
+import GuideButton from "./guides/GuideButton";
 // Navbar.jsx
 import { useEffect, useState } from "react";
 import {
@@ -18,6 +20,7 @@ import ForcePasswordChangeModal from "./auth/ForcePasswordChangeModal";
 import DolarRefreshModal from "./DolarRefreshModal";
 import AgentScheduleDialog from "./realestate/AgentScheduleDialog";
 import { isVisitorPreview as getVisitorPreviewMode } from "../utils/visitorPreview";
+import { MODULES, independentBlockEnabled } from "../services/componentModules";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -29,7 +32,6 @@ export default function Navbar() {
   const { clientSlug } = useParams();
   const isAuth = useAuth((s) => s.isAuthenticated);
   const roles = useAuth((s) => s.roles);
-  const authEmpresaSlug = useAuth((s) => s.empresaSlug);
   const hasPlatformAdminRole = isAuth && roles?.includes("PlatformAdmin");
   // /admin es siempre la consola de plataforma. Determinarlo por la ruta
   // evita el destello amarillo mientras se restaura la sesión guardada.
@@ -43,7 +45,6 @@ export default function Navbar() {
       ? `/${clientSlug}/home`
       : "/";
   const cartHref = `${clientSlug ? `/${clientSlug}/cart` : "/cart"}${isVisitorPreview ? "?preview=1" : ""}`;
-  const tenantHomeHref = authEmpresaSlug ? `/${authEmpresaSlug}/home` : "/";
   // Panel es la consola global de APIGRAFA, no el catálogo del portal actual.
   const panelHref = "/admin?section=clients";
   const productsHref = clientSlug
@@ -135,7 +136,11 @@ export default function Navbar() {
       configuredTenant?.slug?.toLowerCase() === clientSlug?.toLowerCase() &&
       featureStoreEnabled);
   const showStoreNavigation = !isPlatformAdmin && storeEnabled && Boolean(componentSettings?.storeCart ?? true);
-  const showDollarQuote = Boolean(componentSettings?.dollarQuote ?? featureStoreEnabled);
+  const tenantFeatures = useTenantConfig((s) => s.features);
+  const words = moduleDictionary(tenantFeatures);
+  const showDollarQuote = tenantIsLoaded &&
+    (!isPublicClientPortal || configuredTenant?.slug?.toLowerCase() === clientSlug?.toLowerCase()) &&
+    MODULES.some(({ key }) => independentBlockEnabled(tenantFeatures, "dollarQuote", key));
   const showCoordinatorNavigation =
     !isPlatformAdmin &&
     realEstateEnabled &&
@@ -214,7 +219,7 @@ export default function Navbar() {
           <div className="hidden w-auto min-w-0 flex-1 items-center gap-2 px-2 xl:col-start-1 xl:row-start-1 xl:flex">
             <form
               onSubmit={onSearchSubmit}
-              role="search"
+              data-tour="portal-search" role="search"
               className="relative w-full max-w-sm"
             >
               <input
@@ -226,7 +231,7 @@ export default function Navbar() {
                 disabled={isVisitorPreview}
                 readOnly={isVisitorPreview}
                 tabIndex={isVisitorPreview ? -1 : undefined}
-                placeholder="Buscar artículos…"
+                placeholder={words.searchPlaceholder} aria-label={words.searchTitle}
                 autoComplete="off"
                 className="w-full rounded-full inputRan px-3 py-2 pr-24 text-sm focus:outline-none focus:ring"
               />
@@ -254,7 +259,7 @@ export default function Navbar() {
               <button
                 type="submit"
                 disabled={isVisitorPreview}
-                className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full hover:bg-gray-50 hover:border-2 hover:border-yellow-400"
+                className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full hover:bg-gray-50 hover:border-2 hover:border-[var(--tenant-color-primary)]"
               >
                 <svg
                   fill="#000000"
@@ -326,7 +331,7 @@ export default function Navbar() {
         {/* carrito mobile */}
         {showStoreNavigation && (
           <NavLink
-            to={cartHref}
+            data-tour="portal-cart" to={cartHref}
             className="relative xl:hidden"
           >
             <span className="relative flex h-8 w-8">
@@ -359,6 +364,7 @@ export default function Navbar() {
         <button
           aria-label={open ? "Cerrar menú" : "Abrir menú"}
           aria-expanded={open}
+          data-tour="portal-menu"
           aria-controls="mobile-menu"
           className="xl:hidden inline-flex shrink-0 items-center justify-center w-10 h-10 rounded-md active:scale-95 transition"
           onClick={() => setOpen((o) => !o)}
@@ -389,6 +395,7 @@ export default function Navbar() {
         <nav
           className={`${isPlatformAdmin ? "admin-nav" : "tenant-nav"} ml-auto hidden shrink-0 items-center font-semibold xl:col-start-3 xl:row-start-1 xl:justify-self-end xl:flex`}
         >
+          {isAuth && !isPlatformAdmin && !isVisitorPreview && <GuideButton tour="portal" />}
           {hasPlatformAdminRole && !isPlatformAdmin && (
             <NavLink to={panelHref}>Panel</NavLink>
           )}
@@ -402,12 +409,12 @@ export default function Navbar() {
             </NavLink>
           )}
           {showCoordinatorNavigation && (
-            <NavLink to={coordinatorHref} className="transition active:scale-95">
+            <NavLink data-tour="portal-coordinator" to={coordinatorHref} className="transition active:scale-95">
               Coordinar
             </NavLink>
           )}
           {showAgentSchedule && (
-            <button type="button" onClick={() => setAgentScheduleOpen(true)} className="transition active:scale-95">
+            <button type="button" data-tour="portal-agent-schedule" onClick={() => setAgentScheduleOpen(true)} className="transition active:scale-95">
               Coordinar
             </button>
           )}
@@ -420,22 +427,17 @@ export default function Navbar() {
             </NavLink>
           )}
           {isPlatformAdmin && (
-            <NavLink to={tenantHomeHref} className="transition active:scale-95">
-              Inicio
-            </NavLink>
-          )}
-          {isPlatformAdmin && (
             <NavLink to="/admin?section=modules" className="transition active:scale-95">
               Módulos
             </NavLink>
           )}
           {canManage && storeEnabled && (
             <>
-              <NavLink to={ordersHref} className="transition active:scale-95">
+              <NavLink data-tour="portal-orders" to={ordersHref} className="transition active:scale-95">
                 Ventas
               </NavLink>
 
-              <NavLink to={productsHref} className="transition active:scale-95">
+              <NavLink data-tour="portal-products" to={productsHref} className="transition active:scale-95">
                 Productos
               </NavLink>
             </>
@@ -443,7 +445,7 @@ export default function Navbar() {
 
           {showStoreNavigation && (
             <NavLink
-              to={cartHref}
+              data-tour="portal-cart" to={cartHref}
               className="relative transition active:scale-95"
             >
               <span className="relative flex h-8 w-8">
@@ -523,7 +525,7 @@ export default function Navbar() {
           {!isPlatformAdmin && (
             <form
               onSubmit={onSearchSubmit}
-              role="search"
+              data-tour="portal-search" role="search"
               className="p-2 pr-4 cursor-auto"
             >
               <input
@@ -535,7 +537,7 @@ export default function Navbar() {
                 disabled={isVisitorPreview}
                 readOnly={isVisitorPreview}
                 tabIndex={isVisitorPreview ? -1 : undefined}
-                placeholder="Buscar artículos…"
+                placeholder={words.searchPlaceholder} aria-label={words.searchTitle}
                 autoComplete="off"
                 className="w-full inputRan rounded-full shadow-xl px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-white"
               />
@@ -562,7 +564,7 @@ export default function Navbar() {
           )}
           {showCoordinatorNavigation && (
             <NavLink
-              to={coordinatorHref}
+              data-tour="portal-coordinator" to={coordinatorHref}
               className="hover:bg-white rounded-l-full p-2"
               onClick={() => setOpen(false)}
             >
@@ -573,14 +575,14 @@ export default function Navbar() {
             <button
               type="button"
               className="hover:bg-white rounded-l-full p-2 text-left"
-              onClick={() => { setOpen(false); setAgentScheduleOpen(true); }}
+              data-tour="portal-agent-schedule" onClick={() => { setOpen(false); setAgentScheduleOpen(true); }}
             >
               Coordinar
             </button>
           )}
           {showStoreNavigation && (
             <NavLink
-              to={cartHref}
+              data-tour="portal-cart" to={cartHref}
               className="hover:bg-white rounded-l-full p-2"
               onClick={() => setOpen(false)}
             >
@@ -598,15 +600,6 @@ export default function Navbar() {
           )}
           {isPlatformAdmin && (
             <NavLink
-              to={tenantHomeHref}
-              className="hover:bg-white rounded-l-full p-2"
-              onClick={() => setOpen(false)}
-            >
-              Inicio
-            </NavLink>
-          )}
-          {isPlatformAdmin && (
-            <NavLink
               to="/admin?section=modules"
               className="hover:bg-white rounded-l-full p-2"
               onClick={() => setOpen(false)}
@@ -617,14 +610,14 @@ export default function Navbar() {
           {canManage && storeEnabled && (
             <>
               <NavLink
-                to={productsHref}
+                data-tour="portal-products" to={productsHref}
                 className="hover:bg-white rounded-l-full p-2"
                 onClick={() => setOpen(false)}
               >
                 Productos
               </NavLink>
               <NavLink
-                to={ordersHref}
+                data-tour="portal-orders" to={ordersHref}
                 className="hover:bg-white rounded-l-full p-2 mb-2"
                 onClick={() => setOpen(false)}
               >

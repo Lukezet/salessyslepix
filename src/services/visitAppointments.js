@@ -11,5 +11,7 @@ export async function createManualVisit(payload) { const { data } = await axiosC
 export async function getCoordinatorWeek(from) { const { data } = await axiosClient.get("/api/visit-appointments/coordinator/week", { params: { from } }); return data; }
 export async function createRealEstateAdvisor(payload) { const { data } = await axiosClient.post("/api/visit-appointments/advisors", payload); return data; }
 export async function getCalendarStatus() { const { data } = await axiosClient.get("/api/visit-appointments/calendar-status"); return data; }
-export async function getPublicVisitSlots(companySlug, params) { const { data } = await axiosClient.get(`/api/public/companies/${encodeURIComponent(companySlug)}/visit-appointments/slots`, { params }); return data; }
-export async function requestPublicVisit(companySlug, payload) { const { data } = await axiosClient.post(`/api/public/companies/${encodeURIComponent(companySlug)}/visit-appointments`, payload); return data; }
+export async function getPublicVisitSlots(companySlug, params, options = {}) { const { data } = await axiosClient.get(`/api/public/companies/${encodeURIComponent(companySlug)}/visit-appointments/slots`, { params, ...options }); return data; }
+export async function requestPublicVisit(companySlug, payload, requestKey) { const { data } = await axiosClient.post(`/api/public/companies/${encodeURIComponent(companySlug)}/visit-appointments`, payload, { headers: { "Idempotency-Key": requestKey } }); return data; }
+
+export async function getPublicVisitPolicy(companySlug, options = {}) { const { data } = await axiosClient.get(`/api/public/companies/${encodeURIComponent(companySlug)}/visit-appointments/policy`, options); return data; }

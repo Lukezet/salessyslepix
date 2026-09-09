@@ -114,13 +114,19 @@ function fromApi(company) {
   return normalizeCompany(company);
 }
 
-export async function listPlatformCompanies() {
+export async function listPlatformCompanies({ strict = false } = {}) {
   try {
-    const { data } = await axiosClient.get("/api/platform/clients");
+    const { data } = await axiosClient.get("/api/platform/clients", { params: { page: 1, pageSize: 100 } });
+    const rows = [...(data.items ?? [])];
+    for (let page = 2; page <= (data.totalPages ?? 1); page += 1) {
+      const response = await axiosClient.get("/api/platform/clients", { params: { page, pageSize: 100 } });
+      rows.push(...(response.data.items ?? []));
+    }
     const localCompanies = readFallback().map(normalizeCompany);
-    const companies = await Promise.all((data.items ?? []).map((company) => reconcileLocalLogo(fromApi(company), localCompanies)));
+    const companies = await Promise.all(rows.map((company) => reconcileLocalLogo(fromApi(company), localCompanies)));
     return { companies, source: "api" };
-  } catch {
+  } catch (error) {
+    if (strict) throw error;
     return { companies: readFallback().map(normalizeCompany), source: "fallback" };
   }
 }

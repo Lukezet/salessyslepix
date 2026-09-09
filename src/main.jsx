@@ -32,7 +32,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           path="admin"
           element={
             <RequireAuth>
-              <RequireRole allowed={["Admin", "Employee"]}>
+              <RequireRole allowed={["PlatformAdmin"]}>
                 <AdminPage />
               </RequireRole>
             </RequireAuth>

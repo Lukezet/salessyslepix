@@ -52,7 +52,7 @@ function googleMapsUrl(latitude, longitude) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${latitude},${longitude}`)}`;
 }
 
-export default function PropertyMap({ companySlug }) {
+export default function PropertyMap({ companySlug, refreshKey = 0 }) {
   const initialLocation = useInitialMapLocation(companySlug);
   const [operation, setOperation] = useState("sale");
   const [markers, setMarkers] = useState([]);
@@ -87,13 +87,13 @@ export default function PropertyMap({ companySlug }) {
       })
       .finally(() => active && setLoading(false));
     return () => { active = false; controller.abort(); };
-  }, [companySlug, operation]);
+  }, [companySlug, operation, refreshKey]);
 
   const icons = useMemo(() => new Map(), []);
   const operationLabel = operation === "sale" ? "venta" : "alquiler";
 
   return (
-    <section className="mt-8 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+    <section data-tour="portal-map" className="mt-8 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div><h2 className="text-xl font-semibold">Mapa de inmuebles</h2><p className="text-sm text-neutral-600">Las ubicaciones mostradas son públicas y aproximadas.</p></div>
         <div className="inline-flex rounded-lg bg-neutral-100 p-1" role="tablist" aria-label="Operación inmobiliaria">

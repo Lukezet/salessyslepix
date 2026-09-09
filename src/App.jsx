@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation, useParams } from "react-router-dom";
 import { useEffect } from "react";
 import Navbar from "./components/Navbar";
+import { FloatingGuide } from "./components/guides/GuideButton";
 import { useAuth } from "./store/auth";
 import { useTenantConfig } from "./store/tenantConfig";
 import TenantBranding from "./components/tenant/TenantBranding";
@@ -14,10 +15,12 @@ export default function App() {
   const tenantConfig = useTenantConfig((state) => state.config);
   const tenantIsLoaded = useTenantConfig((state) => state.isLoaded);
   const tenantName = tenantConfig?.name ?? "";
+  const sessionContext = useAuth((state) => state.sessionContext);
+  const authInitialized = useAuth((state) => state.initialized);
 
   useEffect(() => {
     const previewMode = isVisitorPreview(window.location.search);
-    if (!previewMode) useAuth.getState().initFromStorage();
+    if (!previewMode) useAuth.getState().initFromStorage(clientSlug);
     useTenantConfig.getState().load(clientSlug);
   }, [clientSlug]);
 
@@ -30,13 +33,13 @@ export default function App() {
   // Nunca mostramos la paleta por defecto de LePix mientras se resuelve la
   // empresa de la URL: una marca equivocada, aunque sea por un instante,
   // hace parecer que el portal pertenece a otro cliente.
-  if (!isPublicTenantReady) {
+  if (!isPublicTenantReady || (!isVisitorPreview(location.search) && (!authInitialized || sessionContext !== clientSlug))) {
     return <PublicPortalSkeleton />;
   }
 
   return (
     <div
-      className="min-h-dvh w-full flex flex-col"
+      className="tenant-portal min-h-dvh w-full flex flex-col"
       style={{
         backgroundColor: "var(--tenant-color-surface)",
         color: "var(--tenant-color-text)",
@@ -44,6 +47,7 @@ export default function App() {
     >
       <TenantBranding />
       <Navbar />
+      <FloatingGuide />
       <main className="flex-1 mx-4 mt-4">
         <Outlet />
       </main>
