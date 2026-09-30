@@ -4,6 +4,8 @@ import { Link, useSearchParams } from "react-router-dom";
 import { getProductsPaginated, deleteProduct, setProductVariantDisabled } from "../../services/catalog";
 import PriceIncreasePanel from "../../components/Admin/PriceIncreasePanel";
 import ProductForm from "../../components/Admin/ProductForm";
+import ProductBulkImport from "../../components/Admin/ProductBulkImport";
+import { useTenantConfig } from "../../store/tenantConfig";
 import ClientsPage from "./ClientsPage";
 import ClientCreatePage from "./ClientCreatePage";
 import CoordinatorSchedulePage from "./CoordinatorSchedulePage";
@@ -16,6 +18,7 @@ function formatPrice(n) {
 }
 
 function ProductAdminPage() {
+  const storeEnabled = useTenantConfig((state) => state.features.store);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const [items, setItems] = useState([]);
@@ -147,6 +150,8 @@ const filtered = useMemo(() => {
       </div>
 
       {err && <div className="rounded-xl border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-100">{err}</div>}
+
+      {storeEnabled && <ProductBulkImport onImported={load} />}
 
       {/* LISTA */}
       {loading ? (
