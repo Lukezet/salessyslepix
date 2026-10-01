@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getOrders, getOrdersSummary, deleteOrder, updateOrderState, updateOrder, searchProducts2} from "../../services/catalog";
 import { formatDateTime } from "../../utils/formatDateTime";
-import StateDropdown from "../../components/StateDropDown";
+import StateDropdown from "../../components/StateDropdown";
 // ======================
 // Utils
 // ======================
