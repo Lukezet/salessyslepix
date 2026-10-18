@@ -9,6 +9,7 @@ import { useTenantConfig } from "../../store/tenantConfig";
 import ClientsPage from "./ClientsPage";
 import ClientCreatePage from "./ClientCreatePage";
 import CoordinatorSchedulePage from "./CoordinatorSchedulePage";
+import InventoryPage from "./InventoryPage";
 import ModulesPage from "./ModulesPage";
 import { useAuth } from "../../store/auth";
 
@@ -138,6 +139,7 @@ const filtered = useMemo(() => {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
         <div className="flex-1"><h1 className="admin-title">Gestión de productos.</h1><p className="admin-subtitle mt-3">Inventario, variantes y precios con una vista clara para operar rápido.</p></div>
         <div className="flex items-center gap-2">
+          <Link to="?section=inventory" className="admin-secondary px-3 py-3">Stock y promos</Link>
           <button className="admin-secondary px-3 py-3" onClick={() => setShowIncrease(true)}>Aumentos</button>
           <input
             className="inputRan rounded px-3 py-2 w-64 h-12"
@@ -390,12 +392,14 @@ const filtered = useMemo(() => {
 }
 
 function PanelOverview() {
+  const storeEnabled = useTenantConfig(s => s.isLoaded && s.features.store);
   return <section className="admin-premium min-h-full"><div className="admin-shell space-y-6">
     <div>
       <h1 className="admin-title">Panel de administración.</h1>
       <p className="admin-subtitle mt-3">Elegí qué parte de tu operación querés gestionar.</p>
     </div>
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {storeEnabled && <Link to="?section=inventory" className="admin-glass rounded-2xl p-6"><h2 className="text-lg font-bold text-white">Stock y promociones</h2><p className="mt-2 text-sm text-slate-300">Existencias, combos y precios promocionales.</p><span className="mt-5 inline-block text-sm font-semibold text-sky-200">Gestionar stock y combos →</span></Link>}
       <Link to="?section=products" className="admin-glass rounded-2xl p-6 transition hover:-translate-y-0.5 hover:border-sky-300/50">
         <h2 className="text-lg font-bold text-white">Productos</h2>
         <p className="mt-2 text-sm text-slate-300">Catálogo, variantes, stock y aumentos de precios.</p>
@@ -424,6 +428,7 @@ export default function AdminPage() {
   if (section === "clients-new") return <ClientCreatePage />;
   if (section === "coordination") return <CoordinatorSchedulePage />;
   if (section === "modules" && isPlatformAdmin) return <ModulesPage />;
+  if (section === "inventory") return <InventoryPage />;
   if (section === "products") return <ProductAdminPage />;
   if (section === "panel") return isPlatformAdmin ? <ClientsPage /> : <PanelOverview />;
   if (isPlatformAdmin) return <ClientsPage />;

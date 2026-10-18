@@ -29,7 +29,7 @@ function ActiveVideo({ url }) {
     };
   }, []);
   return <video ref={ref} src={videoSource(url)} controls playsInline preload="metadata" disablePictureInPicture
-    className="aspect-video w-full bg-black object-contain" aria-label="Video de la publicación" />;
+    className="h-72 w-full bg-black object-contain sm:h-96 lg:h-[440px]" aria-label="Video de la publicación" />;
 }
 
 export default function DetailMediaGallery({ images = [], urls = [], category, alt = "" }) {
@@ -51,7 +51,7 @@ function MediaCarousel({ slides, photos, alt }) {
   return <section aria-label="Fotos y videos de la publicación" className="min-w-0">
     <div className="overflow-hidden rounded-xl">
       {slide.video ? <ActiveVideo key={slide.url} url={slide.url} /> :
-        <div {...bind}><button type="button" onClick={() => setZoom(true)} className="block w-full cursor-zoom-in"><img src={slide.url} alt={alt} className="aspect-video w-full bg-neutral-100 object-contain" /></button></div>}
+        <div {...bind}><button type="button" onClick={() => setZoom(true)} className="block w-full cursor-zoom-in"><img src={slide.url} alt={alt} className="h-72 w-full bg-neutral-100 object-cover object-center sm:h-96 lg:h-[440px]" /></button></div>}
     </div>
     <div className="mt-2 flex items-center justify-between gap-3">
       <button type="button" onClick={prev} className="rounded-lg border px-4 py-2" aria-label="Elemento anterior">‹</button>

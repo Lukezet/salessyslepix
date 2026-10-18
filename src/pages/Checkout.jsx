@@ -68,8 +68,8 @@ export default function Checkout() {
         fullProduct: i.product
       })));
 
-      await createOrder(payload);
       const phone = await getEmpresaPhoneNumber();
+      await createOrder(payload);
       const mensaje = generarMensaje();
       const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(mensaje)}`;
 
@@ -78,7 +78,7 @@ export default function Checkout() {
       window.open(waUrl, "_blank");
     } catch (err) {
       console.error("Error al crear la orden", err);
-      alert("Ocurrió un error al crear la orden.");
+      alert(err?.response?.data?.message || err?.message || "Ocurrió un error al crear la orden.");
     } finally {
       setLoading(false);
     }

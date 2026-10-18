@@ -1,6 +1,9 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import useSwipe from "../hooks/useSwipe";
+
+const navigationButtonClass = "group absolute top-1/2 -translate-y-1/2 grid h-12 w-12 place-items-center rounded-2xl border border-white/15 bg-slate-950/45 text-white shadow-lg backdrop-blur-xl transition duration-200 hover:border-white/40 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/90 focus-visible:ring-offset-4 focus-visible:ring-offset-black/40 active:bg-white/25 sm:h-14 sm:w-14 motion-reduce:transition-none";
 
 export default function LightboxModal({
   open,
@@ -33,7 +36,7 @@ export default function LightboxModal({
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[1500] bg-black/70 backdrop-blur-sm" onClick={onClose}>
       <div
         // ⬇⬇ IMPORTANTE en iOS: desactiva gestos por defecto para que lleguen los pointer events
         className="absolute inset-0 flex items-center justify-center p-4 touch-none"
@@ -65,17 +68,19 @@ export default function LightboxModal({
           <>
             <button
               onClick={onPrev}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 text-white grid place-content-center"
+              type="button"
+              className={`${navigationButtonClass} left-3 sm:left-6`}
               aria-label="Anterior"
             >
-              ‹
+              <ChevronLeft aria-hidden="true" size={28} strokeWidth={1.75} className="transition-transform duration-200 group-hover:-translate-x-0.5 motion-reduce:transition-none" />
             </button>
             <button
               onClick={onNext}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 text-white grid place-content-center"
+              type="button"
+              className={`${navigationButtonClass} right-3 sm:right-6`}
               aria-label="Siguiente"
             >
-              ›
+              <ChevronRight aria-hidden="true" size={28} strokeWidth={1.75} className="transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none" />
             </button>
           </>
         )}

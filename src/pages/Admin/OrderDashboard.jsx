@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getOrders, getOrdersSummary, deleteOrder, updateOrderState, updateOrder, searchProducts2} from "../../services/catalog";
 import { formatDateTime } from "../../utils/formatDateTime";
-import StateDropdown from "../../components/StateDropDown";
+import StateDropdown from "../../components/StateDropdown";
 // ======================
 // Utils
 // ======================
@@ -144,7 +144,7 @@ const makeEditable = (o) => ({
     brandName: d.brandName,
     quantity: d.quantity,
     note: d.note ?? "",
-    unitPriceOverride: "" // por defecto vacío: si el user no escribe, el backend recalcula con FX
+    unitPriceOverride: d.unitPrice // conservar el precio acordado al editar cantidades
   }))
 });
 // lanzar búsqueda
@@ -226,7 +226,7 @@ const closeProductPanel = () => { setProdOpen(false); };
       setEditModel(null);
       setSelected(null);
     } catch (e) {
-      alert(e?.message || "No se pudo guardar la orden");
+      alert(e?.response?.data?.message || e?.message || "No se pudo guardar la orden");
     } finally {
       setSaving(false);
     }
@@ -262,7 +262,7 @@ const closeProductPanel = () => { setProdOpen(false); };
       );
       loadSummary();
     } catch (e) {
-      alert(e?.message || "No se pudo actualizar el estado");
+      alert(e?.response?.data?.message || e?.message || "No se pudo actualizar el estado");
     }
   };
 
@@ -275,7 +275,7 @@ const closeProductPanel = () => { setProdOpen(false); };
       setData(payload);
       loadSummary();
     } catch (e) {
-      alert(e?.message || "No se pudo eliminar la orden");
+      alert(e?.response?.data?.message || e?.message || "No se pudo eliminar la orden");
     } finally {
       setConfirmDelete(null);
     }
