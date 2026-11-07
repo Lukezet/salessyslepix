@@ -105,6 +105,10 @@ export default function PropertyMap({ companySlug, refreshKey = 0 }) {
           <div className="inline-flex rounded-lg bg-neutral-100 p-1" role="tablist" aria-label="Operación inmobiliaria">
             {[['sale', 'Venta'], ['rent', 'Alquiler']].map(([value, label]) => <button key={value} type="button" role="tab" aria-selected={operation === value} onClick={() => setOperation(value)} className={`rounded-md px-3 py-1.5 text-sm font-medium ${operation === value ? "bg-white shadow text-neutral-950" : "text-neutral-600"}`}>{label}</button>)}
           </div>
+
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-4 text-xs font-medium text-neutral-600"><span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-blue-600" />Venta</span><span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-green-600" />Alquiler</span>
           <label>
             <span className="sr-only">Tipo de inmueble</span>
             <select value={propertyType} onChange={(event) => setPropertyType(event.target.value)} className="min-h-10 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-950 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
@@ -112,9 +116,7 @@ export default function PropertyMap({ companySlug, refreshKey = 0 }) {
               {[1, 2, 3].map((value) => <option key={value} value={value}>{PROPERTY_MARKER_TYPES[value].label}</option>)}
             </select>
           </label>
-        </div>
       </div>
-      <div className="mt-3 flex gap-4 text-xs font-medium text-neutral-600"><span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-blue-600" />Venta</span><span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-green-600" />Alquiler</span></div>
       {error && <p className="mt-4 text-sm text-red-700">{error}</p>}
       <div className="mt-4 h-[420px] overflow-hidden rounded-xl border border-neutral-200">
         {!initialLocation ? <div className="grid h-full place-items-center text-sm text-neutral-600">Preparando el mapa…</div> : (

@@ -58,8 +58,38 @@ export async function getApproximateIpLocation() {
   return { latitude: Number(data.latitude), longitude: Number(data.longitude), city: data.city ?? null, region: data.region ?? null, country: data.country ?? null, source: "ip" };
 }
 
-/** Resolves initial position without requesting browser GPS permission. */
+let pendingBrowserLocation = null;
+
+export function getBrowserLocation() {
+  if (!globalThis.navigator?.geolocation || !globalThis.isSecureContext) return Promise.resolve(null);
+  // Share the request across maps and React StrictMode's repeated effects.
+  if (pendingBrowserLocation) return pendingBrowserLocation;
+  pendingBrowserLocation = new Promise((resolve) => {
+    let finished = false;
+    const finish = (location) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      resolve(location);
+    };
+    // Some browsers leave the permission prompt unanswered indefinitely.
+    const timer = setTimeout(() => finish(null), 15000);
+    try {
+      navigator.geolocation.getCurrentPosition(({ coords }) => {
+        if (!isCoordinate(coords.latitude, -90, 90) || !isCoordinate(coords.longitude, -180, 180)) return finish(null);
+        finish({ latitude: coords.latitude, longitude: coords.longitude, zoom: DEFAULT_LOCATION.zoom, source: "browser" });
+      }, () => finish(null), { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+    } catch {
+      finish(null);
+    }
+  }).finally(() => { pendingBrowserLocation = null; });
+  return pendingBrowserLocation;
+}
+
+/** Ask for browser location before reusing a saved/IP-based view. */
 export async function resolveInitialMapLocation(mapId) {
+  const browserLocation = await getBrowserLocation();
+  if (browserLocation) return browserLocation;
   const saved = getSavedMapLocation(mapId);
   if (saved) return saved;
   try {
