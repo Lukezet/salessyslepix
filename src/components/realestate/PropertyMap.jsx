@@ -55,6 +55,7 @@ function googleMapsUrl(latitude, longitude) {
 export default function PropertyMap({ companySlug, refreshKey = 0 }) {
   const initialLocation = useInitialMapLocation(companySlug);
   const [operation, setOperation] = useState("sale");
+  const [propertyType, setPropertyType] = useState("");
   const [markers, setMarkers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -90,14 +91,27 @@ export default function PropertyMap({ companySlug, refreshKey = 0 }) {
   }, [companySlug, operation, refreshKey]);
 
   const icons = useMemo(() => new Map(), []);
+  const visibleMarkers = useMemo(
+    () => propertyType ? markers.filter((marker) => Number(marker.propertyType) === Number(propertyType)) : markers,
+    [markers, propertyType],
+  );
   const operationLabel = operation === "sale" ? "venta" : "alquiler";
 
   return (
     <section data-tour="portal-map" className="mt-8 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div><h2 className="text-xl font-semibold">Mapa de inmuebles</h2><p className="text-sm text-neutral-600">Las ubicaciones mostradas son públicas y aproximadas.</p></div>
-        <div className="inline-flex rounded-lg bg-neutral-100 p-1" role="tablist" aria-label="Operación inmobiliaria">
-          {[['sale', 'Venta'], ['rent', 'Alquiler']].map(([value, label]) => <button key={value} type="button" role="tab" aria-selected={operation === value} onClick={() => setOperation(value)} className={`rounded-md px-3 py-1.5 text-sm font-medium ${operation === value ? "bg-white shadow text-neutral-950" : "text-neutral-600"}`}>{label}</button>)}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-lg bg-neutral-100 p-1" role="tablist" aria-label="Operación inmobiliaria">
+            {[['sale', 'Venta'], ['rent', 'Alquiler']].map(([value, label]) => <button key={value} type="button" role="tab" aria-selected={operation === value} onClick={() => setOperation(value)} className={`rounded-md px-3 py-1.5 text-sm font-medium ${operation === value ? "bg-white shadow text-neutral-950" : "text-neutral-600"}`}>{label}</button>)}
+          </div>
+          <label>
+            <span className="sr-only">Tipo de inmueble</span>
+            <select value={propertyType} onChange={(event) => setPropertyType(event.target.value)} className="min-h-10 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-950 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+              <option value="">Todos los inmuebles</option>
+              {[1, 2, 3].map((value) => <option key={value} value={value}>{PROPERTY_MARKER_TYPES[value].label}</option>)}
+            </select>
+          </label>
         </div>
       </div>
       <div className="mt-3 flex gap-4 text-xs font-medium text-neutral-600"><span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-blue-600" />Venta</span><span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-green-600" />Alquiler</span></div>
@@ -107,7 +121,7 @@ export default function PropertyMap({ companySlug, refreshKey = 0 }) {
       <MapContainer center={[initialLocation.latitude, initialLocation.longitude]} zoom={initialLocation.zoom} zoomControl={false} scrollWheelZoom className="h-full w-full" aria-label={`Mapa de inmuebles en ${operationLabel}`}>
             <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <MapEvents onViewportChange={onViewportChange} />
-            {markers.map((marker) => {
+            {visibleMarkers.map((marker) => {
               const iconKey = `${marker.operation}:${marker.propertyType}`;
               if (!icons.has(iconKey)) icons.set(iconKey, markerIcon(marker.operation, marker.propertyType));
               const type = PROPERTY_MARKER_TYPES[Number(marker.propertyType)]?.label ?? "Inmueble";
@@ -116,7 +130,7 @@ export default function PropertyMap({ companySlug, refreshKey = 0 }) {
           </MapContainer>
         )}
       </div>
-      {!loading && !error && initialLocation && markers.length === 0 && <p className="mt-3 text-sm text-neutral-600">No hay inmuebles publicados para {operationLabel} en esta zona.</p>}
+      {!loading && !error && initialLocation && visibleMarkers.length === 0 && <p role="status" className="mt-3 text-sm text-neutral-600">No hay inmuebles publicados para {operationLabel}{propertyType ? ` de tipo ${PROPERTY_MARKER_TYPES[Number(propertyType)].label.toLowerCase()}` : ""}.</p>}
     </section>
   );
 }
