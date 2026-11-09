@@ -16,6 +16,9 @@ export default function App() {
   const tenantIsLoaded = useTenantConfig((state) => state.isLoaded);
   const tenantName = tenantConfig?.name ?? "";
   const sessionContext = useAuth((state) => state.sessionContext);
+  const isAuthenticated = useAuth((state) => state.isAuthenticated);
+  const storeInternal = useTenantConfig((state) => state.features.storeInternal);
+  const storeRoute = /\/(category|product|cart|checkout)(\/|$)/i.test(location.pathname);
   const authInitialized = useAuth((state) => state.initialized);
 
   useEffect(() => {
@@ -49,7 +52,7 @@ export default function App() {
       <Navbar />
       <FloatingGuide />
       <main className="flex-1 mx-4 mt-4">
-        <Outlet />
+        {storeInternal && !isAuthenticated && storeRoute ? <p className="p-6 text-center">Iniciá sesión para acceder al catálogo de esta empresa.</p> : <Outlet />}
       </main>
       <TenantFooter config={tenantConfig} tenantName={tenantName} clientSlug={clientSlug} />
     </div>

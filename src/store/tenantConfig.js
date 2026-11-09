@@ -4,6 +4,7 @@ import { getFallbackCompanyBySlug } from "../services/companies";
 
 export const DEFAULT_FEATURES = Object.freeze({
   store: false,
+  storeInternal: false,
   realEstate: false,
   vehicles: false,
   interactiveMap: false,
@@ -61,6 +62,7 @@ function normalizeFeatures(config) {
 
   return {
     ...DEFAULT_FEATURES,
+    storeInternal: Boolean(source.storeInternal ?? source.StoreInternal ?? false),
     store: Boolean(source.store ?? source.Store ?? source.shop ?? false),
     realEstate: Boolean(source.realEstate ?? source.RealEstate ?? source.real_estate),
     vehicles: Boolean(source.vehicles ?? source.Vehicles),

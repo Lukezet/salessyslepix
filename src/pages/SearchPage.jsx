@@ -1,3 +1,4 @@
+import { useAuth } from "../store/auth";
 import { useTenantConfig } from "../store/tenantConfig";
 import { searchableModules, MODULE_DICTIONARY } from "../services/moduleDictionary";
 import PublicationCatalog from "../components/publications/PublicationCatalog";
@@ -14,7 +15,8 @@ export default function SearchPage() {
   const { clientSlug } = useParams();
   const [params] = useSearchParams();
   const query = (params.get("q") ?? "").trim();
-  const modules = searchableModules(features);
+  const isAuthenticated = useAuth((state) => state.isAuthenticated);
+  const modules = searchableModules({ ...features, store: features.store && (!features.storeInternal || isAuthenticated) });
   return <div>
     {modules.includes("store") && <StoreSearchPage />}
     {!modules.includes("store") && <h1 className="p-4 text-xl font-semibold">Resultados para “{query}”</h1>}

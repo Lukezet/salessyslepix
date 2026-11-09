@@ -126,6 +126,7 @@ export default function Navbar() {
     roles?.some((r) => ["Admin", "Employee", "PlatformAdmin"].includes(r));
   const configuredTenant = useTenantConfig((s) => s.config);
   const tenantIsLoaded = useTenantConfig((s) => s.isLoaded);
+  const storeInternal = useTenantConfig((s) => s.features.storeInternal);
   const featureStoreEnabled = useTenantConfig((s) => s.features.store);
   const realEstateEnabled = useTenantConfig((s) => s.features.realEstate);
   const appointmentsEnabled = useTenantConfig((s) => s.features.appointments);
@@ -134,10 +135,10 @@ export default function Navbar() {
     !isPublicClientPortal ||
     (tenantIsLoaded &&
       configuredTenant?.slug?.toLowerCase() === clientSlug?.toLowerCase() &&
-      featureStoreEnabled);
+      featureStoreEnabled && (!storeInternal || isAuth));
   const showStoreNavigation = !isPlatformAdmin && storeEnabled && Boolean(componentSettings?.storeCart ?? true);
   const tenantFeatures = useTenantConfig((s) => s.features);
-  const words = moduleDictionary(tenantFeatures);
+  const words = moduleDictionary({ ...tenantFeatures, store: storeEnabled });
   const showDollarQuote = tenantIsLoaded &&
     (!isPublicClientPortal || configuredTenant?.slug?.toLowerCase() === clientSlug?.toLowerCase()) &&
     MODULES.some(({ key }) => independentBlockEnabled(tenantFeatures, "dollarQuote", key));

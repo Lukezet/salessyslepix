@@ -20,7 +20,9 @@ export default function Home() {
   );
   const components = useTenantConfig((state) => state.features.components);
   const componentEnabled = (key, fallback) => components?.[key] ?? fallback;
-  const storeCategoriesEnabled = componentEnabled("storeCategories", storeEnabled) && componentEnabled("storeCatalog", storeEnabled);
+  const storeInternal = useTenantConfig((state) => state.features.storeInternal);
+  const authenticated = useAuth((state) => state.isAuthenticated);
+  const storeCategoriesEnabled = storeEnabled && (!storeInternal || authenticated) && componentEnabled("storeCategories", storeEnabled) && componentEnabled("storeCatalog", storeEnabled);
   const interactiveMapFeatureEnabled = useTenantConfig(
     (state) => state.features.realEstate && state.features.interactiveMap,
   );
@@ -108,6 +110,7 @@ export default function Home() {
   if (!storeCategoriesEnabled) {
     return (
       <>
+        {storeEnabled && storeInternal && !authenticated && <p className="mb-6 rounded-xl border border-current/15 p-5 text-center">Iniciá sesión para acceder al catálogo de esta empresa.</p>}
         {publicationNotice && <p role="status" className="mb-4 text-sm">{publicationNotice}</p>}
         {realEstateActions && <div className="mb-4">{realEstateActions}</div>}
         {interactiveMapEnabled && config?.slug && (
