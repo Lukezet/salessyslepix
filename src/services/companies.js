@@ -1,4 +1,5 @@
 import { axiosClient } from "../lib/axiosClient";
+import { companyCreationError } from "./companyErrors";
 
 const FALLBACK_STORAGE_KEY = "platform-companies-fallback";
 
@@ -135,31 +136,16 @@ export async function createPlatformCompany(payload, logoFile = null) {
   let data;
   try {
     ({ data } = await axiosClient.post("/api/platform/clients", payload));
-  } catch {
-    const logoUrl = logoFile ? await fileAsDataUrl(logoFile) : null;
-    const company = {
-      id: `local-${Date.now()}`,
-      slug: payload.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
-      isActive: true,
-      ...payload,
-      branding: {
-        logoUrl,
-        theme: {
-          primary: payload.features.primaryColor,
-          secondary: payload.features.secondaryColor,
-          accent: payload.features.accentColor,
-          surface: payload.features.surfaceColor,
-          onPrimary: payload.features.onPrimaryColor,
-        },
-      },
-    };
-    const companies = [...readFallback(), company];
-    saveFallback(companies);
-    return { company: normalizeCompany(company), source: "fallback" };
+  } catch (error) {
+    throw new Error(companyCreationError(error));
   }
   const company = fromApi(data);
   if (!logoFile) return { company, source: "api" };
-  return { company: await uploadPlatformCompanyLogo(company.id, logoFile), source: "api" };
+  try {
+    return { company: await uploadPlatformCompanyLogo(company.id, logoFile), source: "api" };
+  } catch {
+    return { company, source: "api", warning: "La empresa se creó, pero no se pudo cargar el logo. Podés agregarlo desde su administración; no vuelvas a crear la empresa." };
+  }
 }
 
 export async function uploadPlatformCompanyLogo(id, file) {

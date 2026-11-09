@@ -1,6 +1,6 @@
 import StoreManagementToggle from "../../components/Admin/StoreManagementToggle";
 import GuideButton from "../../components/guides/GuideButton";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import BrandingEditor from "../../components/branding/BrandingEditor";
 import { DEFAULT_BRANDING_THEME } from "../../components/branding/theme";
@@ -15,19 +15,30 @@ export default function ClientCreatePage() {
   const [logoFile, setLogoFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [completed, setCompleted] = useState(false);
+  const feedbackRef = useRef(null);
+  const submitting = useRef(false);
   const set = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const submit = async (event) => {
-    event.preventDefault(); setSaving(true); setMessage("");
+    event.preventDefault();
+    if (submitting.current || completed) return;
+    submitting.current = true;
+    setSaving(true); setMessage("");
     try {
-      const { source } = await createPlatformCompany({
+      const { warning } = await createPlatformCompany({
         name: form.name.trim(), description: form.description.trim(), industry: form.industry.trim(), phoneNumber: form.phoneNumber.trim(), address: form.address.trim(), city: form.city.trim(), province: form.province.trim(), instagramUrl: form.instagramUrl.trim() || null, facebookUrl: form.facebookUrl.trim() || null, linkedInUrl: form.linkedInUrl.trim() || null, otherSocialUrl: form.otherSocialUrl.trim() || null, customDomain: form.useCustomDomain ? form.customDomain.trim() : null,
         features: { store: form.store, storeInternal: form.storeInternal, realEstate: form.realEstate, vehicles: form.vehicles, interactiveMap: form.realEstate && form.interactiveMap, appointments: false, googleCalendar: false, publicExactAddress: false, customBranding: Boolean(logoFile), logoUrl: null, primaryColor: theme.primary, secondaryColor: theme.secondary, accentColor: theme.accent, surfaceColor: theme.surface, onPrimaryColor: theme.onPrimary },
         initialAdmin: { userName: form.adminName.trim(), email: form.adminEmail.trim(), password: form.adminPassword },
       }, logoFile);
-      setMessage(source === "fallback" ? "Cliente creado localmente." : "Cliente creado correctamente.");
-      setTimeout(() => navigate("/admin?section=clients"), 700);
+      setCompleted(true);
+      if (warning) setMessage(warning);
+      else navigate("/admin?section=clients");
     } catch (error) { setMessage(error.message || "No se pudo crear el cliente."); }
-    finally { setSaving(false); }
+    finally {
+      submitting.current = false;
+      setSaving(false);
+      requestAnimationFrame(() => feedbackRef.current?.focus());
+    }
   };
   return <section className="admin-premium"><div className="admin-shell space-y-7">
     <div className="flex flex-wrap items-center justify-between gap-4"><div><h1 className="admin-title">Diseñá su próximo portal.</h1><p className="admin-subtitle mt-3">Configurá la base operativa y la identidad que verá cada visitante.</p></div><GuideButton tour="clientCreate" className="admin-secondary shrink-0" /><Link className="admin-secondary shrink-0 px-4 py-2.5 text-sm" to="/admin?section=clients">← Volver</Link></div>
@@ -43,7 +54,7 @@ export default function ClientCreatePage() {
         <fieldset data-tour="client-features" className="space-y-2"><legend className="font-medium text-white">Categorías</legend><p className="mb-3 text-sm text-slate-400">Elegí las categorías habilitadas. Sus módulos siguen la configuración general.</p><label className="flex gap-3 rounded-xl border border-slate-600/60 bg-slate-950/30 p-3 text-slate-200"><input type="checkbox" checked={form.store} onChange={(e) => set("store", e.target.checked)} /><span>Tienda <small className="block text-slate-500">Productos y categorías</small></span></label>{form.store && <StoreManagementToggle checked={form.storeInternal} onChange={(value) => set("storeInternal", value)} />}<label className="flex gap-3 rounded-xl border border-slate-600/60 bg-slate-950/30 p-3 text-slate-200"><input type="checkbox" checked={form.realEstate} onChange={(e) => set("realEstate", e.target.checked)} /><span>Inmobiliaria <small className="block text-slate-500">Publicaciones y consultas</small></span></label><label className="flex gap-3 rounded-xl border border-slate-600/60 bg-slate-950/30 p-3 text-slate-200"><input type="checkbox" checked={form.vehicles} onChange={(e) => set("vehicles", e.target.checked)} /><span>Vehículos <small className="block text-slate-500">Catálogo automotor</small></span></label>{form.realEstate && <label className="flex gap-3 rounded-xl border border-slate-600/60 bg-slate-950/30 p-3 text-slate-200"><input type="checkbox" checked={form.interactiveMap} onChange={(e) => set("interactiveMap", e.target.checked)} /><span>Mapa interactivo <small className="block text-slate-500">Ubicaciones públicas</small></span></label>}</fieldset>
         <fieldset data-tour="client-admin" className="space-y-2"><legend className="font-medium">Administrador inicial</legend><label className="grid gap-1 text-sm font-medium">Nombre<input required className="inputRan px-3 py-2" value={form.adminName} onChange={(e) => set("adminName", e.target.value)} /></label><label className="grid gap-1 text-sm font-medium">Email<input required type="email" className="inputRan px-3 py-2" value={form.adminEmail} onChange={(e) => set("adminEmail", e.target.value)} /></label><label className="grid gap-1 text-sm font-medium">Contrasena<input required minLength="12" type="password" className="inputRan px-3 py-2" value={form.adminPassword} onChange={(e) => set("adminPassword", e.target.value)} /></label></fieldset>
       </div>
-      <div className="space-y-5"><div data-tour="client-branding" className="admin-glass rounded-2xl p-5 sm:p-6"><h2 className="text-lg font-semibold text-white">Identidad</h2><div className="mt-4"><BrandingEditor initialTheme={theme} onChange={setTheme} onLogoChange={setLogoFile} /></div></div><div className="admin-card rounded-2xl p-5"><div className="flex items-center justify-between"><h2 className="font-semibold text-white">Vista previa</h2><span className="admin-chip">En vivo</span></div><div className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-white text-slate-900 shadow-xl"><div className="flex items-center justify-between p-3 font-semibold" style={{ backgroundColor: theme.primary, color: theme.onPrimary }}><span>{form.name || "Tu empresa"}</span><span>Inicio</span></div><div className="p-4 text-sm">{form.realEstate ? "Propiedades destacadas" : form.vehicles ? "Vehículos destacados" : form.store ? "Categorías de productos" : "Portal sin catálogo"}</div></div></div><button data-tour="client-submit" disabled={saving} className="admin-primary w-full px-4 py-3 disabled:cursor-not-allowed disabled:opacity-60" type="submit">{saving ? "Creando…" : "Crear empresa →"}</button>{message && <p role="status" className="rounded-xl bg-white/10 px-4 py-3 text-sm text-slate-200">{message}</p>}</div>
+      <div className="space-y-5"><div data-tour="client-branding" className="admin-glass rounded-2xl p-5 sm:p-6"><h2 className="text-lg font-semibold text-white">Identidad</h2><div className="mt-4"><BrandingEditor initialTheme={theme} onChange={setTheme} onLogoChange={setLogoFile} /></div></div><div className="admin-card rounded-2xl p-5"><div className="flex items-center justify-between"><h2 className="font-semibold text-white">Vista previa</h2><span className="admin-chip">En vivo</span></div><div className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-white text-slate-900 shadow-xl"><div className="flex items-center justify-between p-3 font-semibold" style={{ backgroundColor: theme.primary, color: theme.onPrimary }}><span>{form.name || "Tu empresa"}</span><span>Inicio</span></div><div className="p-4 text-sm">{form.realEstate ? "Propiedades destacadas" : form.vehicles ? "Vehículos destacados" : form.store ? "Categorías de productos" : "Portal sin catálogo"}</div></div></div><button data-tour="client-submit" disabled={saving || completed} className="admin-primary w-full px-4 py-3 disabled:cursor-not-allowed disabled:opacity-60" type="submit">{completed ? "Empresa creada" : saving ? "Creando…" : "Crear empresa →"}</button>{message && <div ref={feedbackRef} tabIndex={-1} role={completed ? "status" : "alert"} className="rounded-xl border border-amber-400/50 bg-slate-950 px-4 py-3 text-sm text-white"><p>{message}</p><Link className="mt-3 inline-block underline" to="/admin?section=clients">Ver empresas</Link></div>}</div>
     </form>
   </div></section>;
 }
