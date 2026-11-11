@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { MapContainer, Marker, Popup, TileLayer, useMapEvents } from "react-leaflet";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Building2, BriefcaseBusiness, House, MapPinned, Navigation, Store, Warehouse } from "lucide-react";
@@ -7,6 +8,7 @@ import "leaflet/dist/leaflet.css";
 import { useInitialMapLocation } from "../../hooks/useInitialMapLocation";
 import { saveMapLocation } from "../../services/mapLocation";
 import { getPublicPropertyMapMarkers } from "../../services/realEstateMap";
+import { useTenantConfig } from "../../store/tenantConfig";
 
 const STORAGE_DEBOUNCE_MS = 600;
 
@@ -53,6 +55,7 @@ function googleMapsUrl(latitude, longitude) {
 }
 
 export default function PropertyMap({ companySlug, refreshKey = 0 }) {
+  const detailsEnabled = useTenantConfig((state) => state.features.realEstate && (state.features.components?.realEstateDetails ?? true));
   const initialLocation = useInitialMapLocation(companySlug);
   const [operation, setOperation] = useState("sale");
   const [propertyType, setPropertyType] = useState("");
@@ -127,7 +130,18 @@ export default function PropertyMap({ companySlug, refreshKey = 0 }) {
               const iconKey = `${marker.operation}:${marker.propertyType}`;
               if (!icons.has(iconKey)) icons.set(iconKey, markerIcon(marker.operation, marker.propertyType));
               const type = PROPERTY_MARKER_TYPES[Number(marker.propertyType)]?.label ?? "Inmueble";
-              return <Marker key={marker.id} position={[Number(marker.latitude), Number(marker.longitude)]} icon={icons.get(iconKey)}><Popup><div className="min-w-52 p-1"><strong className="block text-sm font-semibold text-slate-900">{marker.title}</strong><p className="mb-3 mt-1 text-sm text-slate-600">{type} · {marker.operation === "sale" ? "En venta" : "En alquiler"}</p><a className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold no-underline shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" style={{ color: "#fff" }} href={googleMapsUrl(marker.latitude, marker.longitude)} target="_blank" rel="noreferrer"><Navigation size={15} aria-hidden="true" />Ver en Google Maps</a></div></Popup></Marker>;
+              return <Marker key={marker.id} position={[Number(marker.latitude), Number(marker.longitude)]} icon={icons.get(iconKey)}>
+                <Popup maxWidth={360}>
+                  <div className="w-72 max-w-[calc(100vw-5rem)] p-1">
+                    <strong className="block text-sm font-semibold text-slate-900">{marker.title}</strong>
+                    <p className="mb-3 mt-1 text-sm text-slate-600">{type} · {marker.operation === "sale" ? "En venta" : "En alquiler"}</p>
+                    <div className="flex items-stretch gap-2">
+                      <a className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-center text-sm font-semibold no-underline shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" style={{ color: "#fff" }} href={googleMapsUrl(marker.latitude, marker.longitude)} target="_blank" rel="noreferrer"><Navigation size={15} className="shrink-0" aria-hidden="true" />Ver en Google Maps</a>
+                      {detailsEnabled && marker.slug && <Link className="inline-flex min-w-0 flex-1 items-center justify-center rounded-lg bg-neutral-900 px-3 py-2 text-center text-sm font-semibold no-underline shadow-sm transition hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2" style={{ color: "#fff" }} to={`/${encodeURIComponent(companySlug)}/product/${encodeURIComponent(marker.slug)}?publication=1`}>Ver propiedad</Link>}
+                    </div>
+                  </div>
+                </Popup>
+              </Marker>;
             })}
           </MapContainer>
         )}

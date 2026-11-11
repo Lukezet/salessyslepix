@@ -72,3 +72,13 @@ test("native modules can be removed and restored with their prerequisite", () =>
   assert.equal(added.interactiveMap, true);
   assert.equal(added.components.realEstateMap, true);
 });
+
+test("inherited visits can be activated for a company with appointments disabled", () => {
+  const legacy = { realEstate: true, appointments: false, components: { realEstateAppointments: true } };
+  assert.equal(moduleAssigned(legacy, "realEstateAppointments", "realEstate"), false);
+  const enabled = changeModuleAssignment(legacy, "realEstateAppointments", "realEstate", true);
+  assert.equal(enabled.appointments, true);
+  assert.equal(moduleAssigned(enabled, "realEstateAppointments", "realEstate"), true);
+  assert.equal(moduleAssigned({ ...enabled, realEstate: false }, "realEstateAppointments", "realEstate"), false);
+  assert.equal(moduleAssigned({ ...enabled, components: { realEstateAppointments: false } }, "realEstateAppointments", "realEstate"), false);
+});

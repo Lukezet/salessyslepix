@@ -8,6 +8,7 @@ import { useTenantConfig } from "../../store/tenantConfig";
 import { uploadVideo, videosEnabled } from "../../services/videos";
 import { closePublication, getPublicPublication, updatePublication, uploadPropertyImage, uploadVehicleImage } from "../../services/publications";
 import PublicVisitDialog from "../realestate/PublicVisitDialog";
+import ManualVisitDialog from "../realestate/ManualVisitDialog";
 import { useUsdRate } from "../../store/usdRate";
 import { useAuth } from "../../store/auth";
 
@@ -79,4 +80,18 @@ function PublicationEditDialog({ publication, propertyPublication, onClose, onSa
 
 function DetailFacts({ data, property }) { const entries = property ? [["Tipo", data?.propertyType], ["Ambientes", data?.rooms], ["Dormitorios", data?.bedrooms], ["Baños", data?.bathrooms], ["Cocheras", data?.garages], ["Superficie cubierta", data?.coveredAreaM2 && `${data.coveredAreaM2} m²`], ["Superficie total", data?.totalAreaM2 && `${data.totalAreaM2} m²`]] : [["Marca", data?.brand], ["Modelo", data?.model], ["Año", data?.year], ["Color", data?.color], ["Kilometraje", data?.mileage && `${data.mileage} km`]]; const visible = entries.filter(([, value]) => value !== null && value !== undefined && value !== ""); if (!visible.length) return null; return <dl className="mt-6 grid grid-cols-2 gap-3 border-t border-neutral-300 pt-5 text-sm">{visible.map(([label, value]) => <div key={label}><dt className="text-neutral-500">{label}</dt><dd className="font-semibold">{value}</dd></div>)}</dl>; }
 
-function VisitRequest({ publication, companySlug }) { const agents = publication.agents ?? publication.advisors ?? []; const [open, setOpen] = useState(false); return <><button type="button" onClick={() => setOpen(true)} className="mt-7 w-full rounded-xl bg-neutral-900 px-4 py-3 font-semibold text-white hover:bg-neutral-800">Coordinar visita</button>{open && <PublicVisitDialog publication={publication} companySlug={companySlug} agents={agents} onClose={() => setOpen(false)} />}</>; }
+function VisitRequest({ publication, companySlug }) {
+  const agents = publication.agents ?? publication.advisors ?? [];
+  const [dialog, setDialog] = useState(null);
+  const isAuthenticated = useAuth((state) => state.isAuthenticated);
+  const empresaSlug = useAuth((state) => state.empresaSlug);
+  const roles = useAuth((state) => state.roles);
+  const canRegisterVisit = isAuthenticated && empresaSlug?.toLowerCase() === companySlug?.toLowerCase() &&
+    roles?.some((role) => ["RealEstateAgent", "RealEstateCoordinator", "Admin"].includes(role));
+  return <>
+    <button type="button" onClick={() => setDialog("public")} className="mt-7 w-full rounded-xl bg-neutral-900 px-4 py-3 font-semibold text-white hover:bg-neutral-800">Coordinar visita</button>
+    {canRegisterVisit && <button type="button" onClick={() => setDialog("manual")} className="mt-3 w-full rounded-xl border border-neutral-900 px-4 py-3 font-semibold text-neutral-900 hover:bg-neutral-200">Cargar visita recibida por otro medio</button>}
+    {dialog === "public" && <PublicVisitDialog publication={publication} companySlug={companySlug} agents={agents} onClose={() => setDialog(null)} />}
+    {dialog === "manual" && canRegisterVisit && <ManualVisitDialog publication={publication} onClose={() => setDialog(null)} />}
+  </>;
+}

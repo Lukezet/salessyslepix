@@ -6,12 +6,13 @@ import DetailMediaGallery from "../components/DetailMediaGallery";
 import AddButton from "../components/AddButton";
 import PublicationDetail from "../components/publications/PublicationDetail";
 import { useTenantConfig } from "../store/tenantConfig";
+import { moduleAssigned } from "../services/componentModules";
 
 export default function ProductDetail() {
   const { id, clientSlug } = useParams();
   const [searchParams] = useSearchParams();
   const features = useTenantConfig((state) => state.features);
-  const appointmentsEnabled = features.realEstate && features.appointments && (features.components?.realEstateAppointments ?? true);
+  const appointmentsEnabled = moduleAssigned(features, "realEstateAppointments", "realEstate");
   const isPublication = searchParams.get("publication") === "1";
   if (isPublication && clientSlug) {
     return <PublicationDetail companySlug={clientSlug} publicationSlug={id} appointmentsEnabled={appointmentsEnabled} />;

@@ -82,7 +82,9 @@ export function moduleAssigned(features, key, category) {
   const block = INDEPENDENT_BLOCKS.find((item) => item.key === key);
   if (!supportsCategory(block, category)) return false;
   if (!block.categories) return Boolean(features?.components?.[key] ?? (key === "dollarQuote" && features?.store)) && assignedTo(features, key, category);
-  return Boolean(features?.components?.[key] ?? (features?.[category] && (!block.prerequisite || features?.[block.prerequisite])));
+  return Boolean(features?.[category]) &&
+    (!block.prerequisite || Boolean(features?.[block.prerequisite])) &&
+    (features?.components?.[key] ?? true);
 }
 
 export function changeModuleAssignment(features, key, category, value) {
