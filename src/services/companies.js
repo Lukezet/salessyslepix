@@ -160,12 +160,14 @@ export async function updatePlatformCompany(id, payload, logoFile = null) {
   try {
     ({ data } = await axiosClient.put(`/api/platform/clients/${id}`, payload));
   } catch (error) {
+    if (!import.meta.env.DEV) throw error;
     const companies = readFallback();
     const index = companies.findIndex((company) => String(company.id) === String(id));
     if (index < 0) throw error;
     const logoUrl = logoFile ? await fileAsDataUrl(logoFile) : companies[index].branding?.logoUrl ?? null;
     companies[index] = normalizeCompany({
       ...companies[index],
+      whatsAppNumber: payload.whatsAppNumber ?? companies[index].whatsAppNumber,
       isActive: payload.isActive,
       features: payload.features,
       branding: {

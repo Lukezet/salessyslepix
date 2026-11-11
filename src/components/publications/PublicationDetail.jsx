@@ -1,3 +1,4 @@
+import { propertyWhatsAppUrl } from "../../services/whatsapp";
 import MoneyInput from "../MoneyInput";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -24,6 +25,7 @@ export default function PublicationDetail({ companySlug, publicationSlug, appoin
   const [error, setError] = useState("");
   const roles = useAuth((state) => state.roles);
   const features = useTenantConfig((state) => state.features);
+  const company = useTenantConfig((state) => state.config);
   const { rate: usdRate, load: loadUsdRate } = useUsdRate();
   useEffect(() => { const controller = new AbortController(); setError(""); setPublication(null); getPublicPublication(companySlug, publicationSlug, { signal: controller.signal }).then(setPublication).catch((requestError) => { if (requestError?.name !== "CanceledError") setError("No se pudo cargar la publicación."); }); return () => controller.abort(); }, [companySlug, publicationSlug]);
   useEffect(() => { if (isUsd(publication) && usdRate == null) loadUsdRate(); }, [publication, loadUsdRate, usdRate]);
@@ -34,12 +36,13 @@ export default function PublicationDetail({ companySlug, publicationSlug, appoin
     ? features.realEstate && (features.components?.realEstateDetails ?? true)
     : features.vehicles && (features.components?.vehicleDetails ?? true);
   if (!detailsEnabled) return <p>El detalle de esta categoría no está habilitado para este portal.</p>;
+  const contactUrl = company?.slug === companySlug ? propertyWhatsAppUrl(company.whatsAppNumber, publication.title, new URL(`/${encodeURIComponent(companySlug)}/product/${encodeURIComponent(publication.slug ?? publicationSlug)}?publication=1`, window.location.origin).href) : null;
   const canEdit = roles?.some((role) => ["RealEstateAgent", "RealEstateCoordinator", "Admin", "PlatformAdmin"].includes(role));
   const reload = async () => {
     try { setPublication(await getPublicPublication(companySlug, publicationSlug)); }
     catch { setError("No se pudo actualizar la publicación."); }
   };
-  return <section className="mx-auto max-w-7xl"><button type="button" onClick={() => navigate(-1)} className="mb-4 inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-100 hover:text-neutral-950 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2" aria-label="Volver al catálogo"><span aria-hidden="true" className="text-xl leading-none">←</span> Volver al catálogo</button><article className="grid gap-6 md:grid-cols-2 lg:grid-cols-[1.1fr_1fr]"><div className="min-w-0"><DetailMediaGallery images={imagesOf(publication)} alt={publication.title ?? "Publicación"} urls={publication.videoUrls ?? []} category={propertyPublication ? "realEstate" : "vehicles"} /></div><div className="w-full rounded-2xl bg-neutral-100 p-5 md:max-w-xl md:justify-self-start"><span className="rounded-full bg-neutral-900 px-2.5 py-1 text-xs font-semibold text-white">{propertyPublication ? (Number(publication.operation) === 2 || publication.operation === "Rent" ? "Alquiler" : "Venta") : "Vehículo"}</span><h1 className="mt-3 text-3xl font-bold">{publication.title}</h1><p className="mt-3 text-2xl font-semibold">{money(publication.price, isUsd(publication) ? "USD" : "ARS")} <span className={`text-base font-semibold ${isUsd(publication) ? "rounded-full bg-amber-100 px-2 py-0.5 text-amber-900" : "text-neutral-500"}`}>{isUsd(publication) ? "USD" : "ARS"}</span></p>{isUsd(publication) && typeof usdRate === "number" && <p className="mt-1 text-sm text-neutral-600">({money(Number(publication.price) * usdRate, "ARS")} ARS)</p>}<p className="mt-5 whitespace-pre-line text-neutral-700">{publication.description}</p><DetailFacts data={propertyPublication ? property : vehicle} property={propertyPublication} />{propertyPublication && appointmentsEnabled && <VisitRequest publication={publication} companySlug={companySlug} />}{canEdit && <PublicationActions publication={publication} propertyPublication={propertyPublication} onSaved={reload} onClosed={() => navigate(-1)} />}</div></article></section>;
+  return <section className="mx-auto max-w-7xl"><button type="button" onClick={() => navigate(-1)} className="mb-4 inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-100 hover:text-neutral-950 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2" aria-label="Volver al catálogo"><span aria-hidden="true" className="text-xl leading-none">←</span> Volver al catálogo</button><article className="grid gap-6 md:grid-cols-2 lg:grid-cols-[1.1fr_1fr]"><div className="min-w-0"><DetailMediaGallery images={imagesOf(publication)} alt={publication.title ?? "Publicación"} urls={publication.videoUrls ?? []} category={propertyPublication ? "realEstate" : "vehicles"} /></div><div className="w-full rounded-2xl bg-neutral-100 p-5 md:max-w-xl md:justify-self-start"><span className="rounded-full bg-neutral-900 px-2.5 py-1 text-xs font-semibold text-white">{propertyPublication ? (Number(publication.operation) === 2 || publication.operation === "Rent" ? "Alquiler" : "Venta") : "Vehículo"}</span><h1 className="mt-3 text-3xl font-bold">{publication.title}</h1><p className="mt-3 text-2xl font-semibold">{money(publication.price, isUsd(publication) ? "USD" : "ARS")} <span className={`text-base font-semibold ${isUsd(publication) ? "rounded-full bg-amber-100 px-2 py-0.5 text-amber-900" : "text-neutral-500"}`}>{isUsd(publication) ? "USD" : "ARS"}</span></p>{isUsd(publication) && typeof usdRate === "number" && <p className="mt-1 text-sm text-neutral-600">({money(Number(publication.price) * usdRate, "ARS")} ARS)</p>}<p className="mt-5 whitespace-pre-line text-neutral-700">{publication.description}</p><DetailFacts data={propertyPublication ? property : vehicle} property={propertyPublication} />{propertyPublication && <VisitRequest publication={publication} companySlug={companySlug} appointmentsEnabled={appointmentsEnabled} />}{propertyPublication && contactUrl && <a href={contactUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex w-full justify-center rounded-xl bg-green-700 px-4 py-3 font-semibold text-white hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-700 focus:ring-offset-2">Contactar por WhatsApp</a>}{canEdit && <PublicationActions publication={publication} propertyPublication={propertyPublication} onSaved={reload} onClosed={() => navigate(-1)} />}</div></article></section>;
 }
 
 function PublicationActions({ publication, propertyPublication, onSaved, onClosed }) {
@@ -80,18 +83,19 @@ function PublicationEditDialog({ publication, propertyPublication, onClose, onSa
 
 function DetailFacts({ data, property }) { const entries = property ? [["Tipo", data?.propertyType], ["Ambientes", data?.rooms], ["Dormitorios", data?.bedrooms], ["Baños", data?.bathrooms], ["Cocheras", data?.garages], ["Superficie cubierta", data?.coveredAreaM2 && `${data.coveredAreaM2} m²`], ["Superficie total", data?.totalAreaM2 && `${data.totalAreaM2} m²`]] : [["Marca", data?.brand], ["Modelo", data?.model], ["Año", data?.year], ["Color", data?.color], ["Kilometraje", data?.mileage && `${data.mileage} km`]]; const visible = entries.filter(([, value]) => value !== null && value !== undefined && value !== ""); if (!visible.length) return null; return <dl className="mt-6 grid grid-cols-2 gap-3 border-t border-neutral-300 pt-5 text-sm">{visible.map(([label, value]) => <div key={label}><dt className="text-neutral-500">{label}</dt><dd className="font-semibold">{value}</dd></div>)}</dl>; }
 
-function VisitRequest({ publication, companySlug }) {
+function VisitRequest({ publication, companySlug, appointmentsEnabled }) {
   const agents = publication.agents ?? publication.advisors ?? [];
   const [dialog, setDialog] = useState(null);
   const isAuthenticated = useAuth((state) => state.isAuthenticated);
   const empresaSlug = useAuth((state) => state.empresaSlug);
   const roles = useAuth((state) => state.roles);
-  const canRegisterVisit = isAuthenticated && empresaSlug?.toLowerCase() === companySlug?.toLowerCase() &&
+  const canRegisterVisit = appointmentsEnabled && isAuthenticated && empresaSlug?.toLowerCase() === companySlug?.toLowerCase() &&
     roles?.some((role) => ["RealEstateAgent", "RealEstateCoordinator", "Admin"].includes(role));
   return <>
-    <button type="button" onClick={() => setDialog("public")} className="mt-7 w-full rounded-xl bg-neutral-900 px-4 py-3 font-semibold text-white hover:bg-neutral-800">Coordinar visita</button>
+    <button type="button" onClick={() => setDialog(appointmentsEnabled ? "public" : "unavailable")} className="mt-7 w-full rounded-xl bg-neutral-900 px-4 py-3 font-semibold text-white hover:bg-neutral-800">Coordinar visita</button>
+    {dialog === "unavailable" && <p role="status" className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">La inmobiliaria todavía no tiene una agenda de visitas habilitada. Contactala para coordinar un horario.</p>}
     {canRegisterVisit && <button type="button" onClick={() => setDialog("manual")} className="mt-3 w-full rounded-xl border border-neutral-900 px-4 py-3 font-semibold text-neutral-900 hover:bg-neutral-200">Cargar visita recibida por otro medio</button>}
-    {dialog === "public" && <PublicVisitDialog publication={publication} companySlug={companySlug} agents={agents} onClose={() => setDialog(null)} />}
+    {dialog === "public" && appointmentsEnabled && <PublicVisitDialog publication={publication} companySlug={companySlug} agents={agents} onClose={() => setDialog(null)} />}
     {dialog === "manual" && canRegisterVisit && <ManualVisitDialog publication={publication} onClose={() => setDialog(null)} />}
   </>;
 }
