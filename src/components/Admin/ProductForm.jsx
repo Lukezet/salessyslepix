@@ -1,3 +1,5 @@
+import SubproductEditor from "./SubproductEditor";
+import MoneyInput from "../MoneyInput";
 // src/admin/ProductForm.jsx
 import { useEffect, useMemo, useState } from "react";
 import FilePicker from "../FilePicker";
@@ -20,6 +22,8 @@ import {
   listProviders,
   createProviders
 } from "../../services/catalog";
+import { independentBlockEnabled } from "../../services/componentModules";
+import { newProductCurrency } from "../../services/productCurrency";
 import { useUsdRate } from "../../store/usdRate";
 const CURRENCY = { USD: 1, ARS: 2 };
 // function slugify(str = "") {
@@ -47,8 +51,11 @@ export default function ProductForm({
   onSaved,
 }) {
   const features = useTenantConfig((state) => state.features);
+  const usdEnabled = independentBlockEnabled(features, "dollarQuote", "store");
+  const isNewProduct = !initial && !productId;
   const [videoFiles, setVideoFiles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [subproductBusy, setSubproductBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
   const { rate: usdRate, load } = useUsdRate();
@@ -73,13 +80,14 @@ export default function ProductForm({
     variants: [], // [{ colorId, sizeId, sku, priceOverride, isDefault, images:[{url,sort}] }]
     currency: CURRENCY.USD
   }));
+const currency = isNewProduct ? newProductCurrency(usdEnabled, form.currency) : form.currency;
 useEffect(() => {
-  if (usdRate == null) load(); // asegura tener el valor
-}, [usdRate, load]);
+  if (usdEnabled && usdRate == null) load();
+}, [usdEnabled, usdRate, load]);
 
 const priceNum = Number(form.price) || 0;
 const convertedArs =
-  form.currency === CURRENCY.USD && typeof usdRate === "number"
+  currency === CURRENCY.USD && typeof usdRate === "number"
     ? priceNum * usdRate
     : null;
   // Cargar bases + producto
@@ -135,6 +143,7 @@ useEffect(() => {
   // Mapear API → Form (admin)
   function fromApiToForm(p) {
     return {
+      subproducts: p.subproducts ?? null,
       videoUrls: p.videoUrls ?? [],
       name: p.name ?? "",
       description: p.description ?? "",
@@ -320,7 +329,7 @@ const quickAddCategory = async () => {
 
       // 🚫 No enviamos imágenes de producto (lo dejamos vacío)
       images: [],
-      currency: form.currency, // 👈 NEW
+      currency,
       // variantes con IDs y SKU auto
       variants: (form.variants ?? []).map(v => {
         const c = v.colorId ? colorMap.get(v.colorId) : null;
@@ -341,10 +350,12 @@ const quickAddCategory = async () => {
         };
       })
     };
-  }, [form, colors, sizes]);
+  }, [form, colors, sizes, currency]);
 
   // ====== Validación ======
   const validate = () => {
+    if (form.subproducts && Object.keys(form.subproducts).length === 0) return "Agregá al menos un subproducto o desactivá la composición";
+    if (Object.values(form.subproducts ?? {}).some(q => !Number.isSafeInteger(Number(q)) || Number(q) < 1 || Number(q) > 100000)) return "Indicá cantidades enteras entre 1 y 100000";
     if (!payload.name?.trim()) return "Nombre requerido";
     if (!payload.slug?.trim()) return "Slug requerido";
     if (!payload.brandId) return "Marca requerida";
@@ -374,7 +385,7 @@ const save = async () => {
     setErr(null);
 
     // Clonar el form actual
-    const payload = { ...form };
+    const payload = { ...form, currency, subproducts: form.subproducts == null ? (isNewProduct ? null : {}) : Object.fromEntries(Object.entries(form.subproducts).map(([id, qty]) => [id, Number(qty)])) };
     if (videosEnabled(features, "store")) payload.videoUrls = [...(form.videoUrls ?? []), ...await Promise.all(videoFiles.map((file) => uploadVideo(file, "store")))];
     else delete payload.videoUrls;
     console.log()
@@ -404,7 +415,7 @@ const save = async () => {
     onSaved?.(res);
   } catch (e) {
     console.error(e);
-    setErr(e?.response?.data ?? "No se pudo guardar.");
+    setErr(e?.response?.data?.message ?? e?.response?.data?.error ?? "No se pudo guardar.");
   } finally {
     setSaving(false);
   }
@@ -453,9 +464,9 @@ const save = async () => {
         <div>
           <div className="flex items-center">
           <label className="block text-sm font-medium mb-2">
-            Precio base {form.currency === CURRENCY.USD ? "(USD)" : "(ARS)"}
+            Precio base {currency === CURRENCY.USD ? "(USD)" : "(ARS)"}
           </label>
-          {form.currency === CURRENCY.USD && (
+          {usdEnabled && currency === CURRENCY.USD && (
               <p className="mt-1 text-xs text-zinc-600">
                 {typeof usdRate === "number"
                   ? <>≈ ARS{" "}
@@ -471,26 +482,25 @@ const save = async () => {
           </div>
           
           <div className="flex gap-2">
-            <input
-              type="number"
+            <MoneyInput
               className="w-full border rounded px-3 py-2 inputRan"
               value={form.price}
-              onChange={e => setField("price", e.target.value)}
+              onValueChange={value => setField("price", value)}
               min={0}
             />
-            <select
+            {(usdEnabled || !isNewProduct) && <select
               className="w-28 border rounded px-2 py-2 panel-custom"
-              value={form.currency}
+              value={currency}
               onChange={e => setField("currency", Number(e.target.value))} // 👈 importante: número
               title="Moneda de carga"
             >
               <option value={CURRENCY.USD}>USD</option>
               <option value={CURRENCY.ARS}>ARS</option>
-            </select>
+            </select>}
             
           </div>
           <p className="mt-1 text-xs text-neutral-500">
-            Los precios ingresados se interpretan en la moneda elegida. El cliente siempre ve ARS.
+            {isNewProduct && !usdEnabled ? "Los precios se cargan en pesos argentinos (ARS)." : "Los precios ingresados se interpretan en la moneda elegida. El cliente siempre ve ARS."}
           </p>
         </div>
         <div>
@@ -600,6 +610,8 @@ const save = async () => {
 
       {/* 🚫 Imágenes de producto: eliminadas. Ahora solo por variante. */}
 
+      <SubproductEditor onBusyChange={setSubproductBusy} value={form.subproducts ?? null} onChange={value => setField("subproducts", value)} categoryId={form.categoryId} brandId={form.brandId} disabled={saving} />
+
       {/* Variantes */}
       <div>
         <div className="flex items-center justify-between">
@@ -609,7 +621,7 @@ const save = async () => {
 
         {form.variants.length === 0 ? (
           <div className="mt-2 text-sm text-neutral-600">
-            Sin variantes. (Se usará solo el precio base del producto)
+            {form.subproducts ? "Se creará una variante única con el precio base y esta composición." : "Sin variantes. (Se usará solo el precio base del producto)"}
           </div>
         ) : (
           <div className="mt-3 space-y-3">
@@ -658,13 +670,12 @@ const save = async () => {
                     {/* Precio override */}
                     <div>
                       <label className="block text-sm">
-                        Precio (override) {form.currency === CURRENCY.USD ? "USD" : "ARS"}
+                        Precio (override) {currency === CURRENCY.USD ? "USD" : "ARS"}
                       </label>
-                      <input
-                        type="number"
+                      <MoneyInput
                         className="w-full border rounded px-2 py-1"
                         value={v.priceOverride ?? ""}
-                        onChange={e => setVariantField(idx, "priceOverride", e.target.value === "" ? "" : Number(e.target.value))}
+                        onValueChange={value => setVariantField(idx, "priceOverride", value)}
                         placeholder="(opcional)"
                       />
                     </div>
@@ -734,7 +745,7 @@ const save = async () => {
         <button
           type="button"
           onClick={save}
-          disabled={saving}
+          disabled={saving || subproductBusy}
           className="btn-custom px-5 py-2 disabled:opacity-60"
         >
           {saving ? "Guardando..." : "Guardar"}

@@ -1,3 +1,4 @@
+import MoneyInput from "./MoneyInput";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function DolarRefreshModal({
@@ -63,12 +64,10 @@ export default function DolarRefreshModal({
         </div>
 
         <div className="flex items-center gap-2 mb-2">
-          <input
-            type="text"
-            inputMode="decimal"
+          <MoneyInput
             placeholder="Ingresá un valor (opcional)"
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onValueChange={value => setValue(value)}
             className={`flex-1 rounded-lg border px-3 py-2 bg-transparent outline-none inputRan mr-2
               border-zinc-300 dark:border-zinc-700 focus:ring-2 focus:ring-zinc-400
               ${inputHasError ? " ring-2 ring-red-500 border-red-500" : ""}`}

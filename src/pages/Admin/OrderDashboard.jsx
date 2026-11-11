@@ -1,3 +1,4 @@
+import MoneyInput from "../../components/MoneyInput";
 import React, { useEffect, useMemo, useState } from "react";
 import { getOrders, getOrdersSummary, deleteOrder, updateOrderState, updateOrder, searchProducts2} from "../../services/catalog";
 import { formatDateTime } from "../../utils/formatDateTime";
@@ -554,7 +555,7 @@ const closeProductPanel = () => { setProdOpen(false); };
           </label>
           <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col">
             <span className="text-gray-500">Monto pagado (ARS)</span>
-            <input type="number" step="0.01" className="" value={editModel.paymentAmount} onChange={e => setEditModel(m => ({...m, paymentAmount: e.target.value}))} />
+            <MoneyInput step="0.01" className="" value={editModel.paymentAmount} onValueChange={value => setEditModel(m => ({...m, paymentAmount: value}))} />
           </label>
 
            <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col">
@@ -563,7 +564,7 @@ const closeProductPanel = () => { setProdOpen(false); };
           </label>
           <label className="rounded-xl panel-customLight p-2 px-4 flex flex-col">
             <span className="text-gray-500">Descuento (ARS)</span>
-            <input type="number" step="0.01" className="" value={editModel.discountAmount} onChange={e => setEditModel(m => ({...m, discountAmount: e.target.value, discountPercent: ""}))} />
+            <MoneyInput step="0.01" className="" value={editModel.discountAmount} onValueChange={value => setEditModel(m => ({...m, discountAmount: value, discountPercent: ""}))} />
           </label>
           <div className="rounded-xl panel-custom p-2 px-4 col-span-2">
             <div className="flex items-center gap-2">
@@ -572,7 +573,7 @@ const closeProductPanel = () => { setProdOpen(false); };
             </div>
             <label className="mt-2  block">
               <span className="text-gray-500 text-xs">cotizacion personalizada</span>
-              <input type="number" step="0.01" className="ml-2 border-2 border-amber-500 w-24 rounded-lg bg-amber-50" value={editModel.exchangeRateOverride} onChange={e => setEditModel(m => ({...m, exchangeRateOverride: e.target.value}))} />
+              <MoneyInput step="0.01" className="ml-2 border-2 border-amber-500 w-24 rounded-lg bg-amber-50" value={editModel.exchangeRateOverride} onValueChange={value => setEditModel(m => ({...m, exchangeRateOverride: value}))} />
             </label>
           </div>
          
@@ -641,13 +642,12 @@ const closeProductPanel = () => { setProdOpen(false); };
                   />
                 </Td>
                 <Td className="text-right">
-                  <input
-                    type="number"
+                  <MoneyInput
                     step="0.01"
                     className=" w-28 text-right"
                     placeholder="(auto)"
                     value={d.unitPriceOverride ?? ""}
-                    onChange={(e) => updateRow(idx, { unitPriceOverride: e.target.value })}
+                    onValueChange={value => updateRow(idx, { unitPriceOverride: value })}
                   />
                 </Td>
                 <Td>

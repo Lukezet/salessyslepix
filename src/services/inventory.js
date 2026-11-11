@@ -6,4 +6,8 @@ export async function setStock(id, quantity, expectedQuantity) {
 export async function createCombo(name, price, components) {
   return (await axiosClient.post("/api/inventory/combos", { name, price, components })).data;
 }
-export const inventoryError = (error) => error?.response?.data?.message ?? error?.response?.data?.Message ?? "No se pudo completar la operación. Intentá nuevamente.";
+export const inventoryError = (error) => error?.response?.data?.message ?? error?.response?.data?.Message ?? error?.response?.data?.error ?? "No se pudo completar la operación. Intentá nuevamente.";
+
+export async function createSubproduct(input) {
+  return (await axiosClient.post("/api/inventory/subproducts", input)).data;
+}

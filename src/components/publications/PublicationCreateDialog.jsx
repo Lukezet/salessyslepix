@@ -1,3 +1,4 @@
+import MoneyInput from "../MoneyInput";
 import GuideButton from "../guides/GuideButton";
 import { useState } from "react";
 import MediaAddButton from "../MediaAddButton";
@@ -280,7 +281,7 @@ export default function PublicationCreateDialog({ type, onClose, onSaved }) {
               </h3>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <Input form={form} set={set} name="title" label="Título" required />
-                <Input form={form} set={set} name="price" label={`Precio (${Number(form.currency) === 1 ? "USD" : "ARS"})`} type="number" required />
+                <label className="grid gap-1 text-sm"><span>Precio ({Number(form.currency) === 1 ? "USD" : "ARS"})</span><MoneyInput value={form.price} onValueChange={value => set("price", value)} min="0" required className="rounded-lg border px-3 py-2" /></label>
                 <label className="grid gap-1 text-sm">
                   <span>Moneda</span>
                   <select value={form.currency} onChange={(event) => set("currency", event.target.value)} className="rounded-lg border px-3 py-2">

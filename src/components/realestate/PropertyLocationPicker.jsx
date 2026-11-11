@@ -1,8 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { Icon } from "leaflet";
+import markerIconUrl from "leaflet/dist/images/marker-icon.png";
+import markerRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
+import markerShadowUrl from "leaflet/dist/images/marker-shadow.png";
 import { useInitialMapLocation } from "../../hooks/useInitialMapLocation";
 import { reversePropertyAddress, searchPropertyAddress } from "../../services/propertyGeocoding";
+
+// Explicit imports let Vite resolve the marker assets in production builds.
+const locationIcon = new Icon({
+  iconUrl: markerIconUrl,
+  iconRetinaUrl: markerRetinaUrl,
+  shadowUrl: markerShadowUrl,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
 
 function MapClick({ onPick }) {
   useMapEvents({ click: (event) => onPick(event.latlng.lat, event.latlng.lng) });
@@ -107,7 +122,7 @@ export default function PropertyLocationPicker({ value, onChange }) {
   const longitude = value.pinLongitude ?? value.addressLongitude ?? initialLocation?.longitude;
   return <section className="mt-5 border-t pt-5"><h3 className="text-base font-semibold">Ubicación</h3><p className="mt-1 text-sm text-neutral-600">La dirección se mantiene interna. En el portal público sólo se usa una ubicación aproximada.</p>
     <label className="mt-3 grid gap-1 text-sm"><span>Dirección</span><input required value={value.address} onChange={(event) => editAddress(event.target.value)} placeholder="Ej.: Av. Santa Fe 1800, Palermo, CABA" className="rounded-lg border px-3 py-2" /></label>
-    <div className="mt-3 h-64 overflow-hidden rounded-xl border border-neutral-200">{!initialLocation || latitude == null || longitude == null ? <div className="grid h-full place-items-center text-sm text-neutral-600">Preparando el mapa…</div> : <MapContainer center={[latitude, longitude]} zoom={value.pinLatitude != null ? 16 : initialLocation.zoom} className="h-full w-full" aria-label="Seleccionar ubicación del inmueble"><TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /><SearchCenter position={searchCenter} /><MapClick onPick={reverseGeocode} />{value.pinLatitude != null && <Marker position={[value.pinLatitude, value.pinLongitude]} />}</MapContainer>}</div>
+    <div className="mt-3 h-64 overflow-hidden rounded-xl border border-neutral-200">{!initialLocation || latitude == null || longitude == null ? <div className="grid h-full place-items-center text-sm text-neutral-600">Preparando el mapa…</div> : <MapContainer center={[latitude, longitude]} zoom={value.pinLatitude != null ? 16 : initialLocation.zoom} className="h-full w-full" aria-label="Seleccionar ubicación del inmueble"><TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /><SearchCenter position={searchCenter} /><MapClick onPick={reverseGeocode} />{value.pinLatitude != null && <Marker icon={locationIcon} position={[value.pinLatitude, value.pinLongitude]} />}</MapContainer>}</div>
     <p className="mt-2 text-xs text-neutral-600">{status || "Hacé clic en el mapa para seleccionar una ubicación aproximada."}</p>
   </section>;
 }
