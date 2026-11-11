@@ -27,8 +27,8 @@ export default function SubproductEditor({ value, onChange, categoryId, brandId,
     } catch (e) { setError(inventoryError(e)); }
     finally { setBusy(false); onBusyChange?.(false); }
   };
-  return <fieldset disabled={disabled || busy} className="admin-card rounded-xl p-4 space-y-4">
-    <legend className="font-bold">Subproductos</legend>
+  return <fieldset disabled={disabled || busy} className="admin-glass rounded-xl p-4 space-y-4">
+    <legend className="px-2 font-bold">Subproductos</legend>
     <label className="flex items-center gap-3"><input type="checkbox" checked={enabled} onChange={e => onChange(e.target.checked ? {} : null)} />Este producto se arma con subproductos</label>
     <p className="text-sm">En pedidos se muestra el producto final. Cada venta descuenta las cantidades de sus ingredientes. La misma composición se aplica a todas sus variantes.</p>
     {error && <p role="alert" className="text-red-400">{error}</p>}
