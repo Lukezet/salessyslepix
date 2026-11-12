@@ -1,3 +1,4 @@
+import { articleWhatsAppUrl } from "../services/whatsapp";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { getProductById } from "../services/catalog";
@@ -22,6 +23,8 @@ export default function ProductDetail() {
 }
 
 function StoreProductDetail() {
+  const company = useTenantConfig(state => state.config);
+  const { clientSlug } = useParams();
   const navigate = useNavigate();
   const { id } = useParams();
   const pid = Number(id);
@@ -132,6 +135,7 @@ const gallery = useMemo(() => {
 
   if (notFound) return <p>Producto no encontrado.</p>;
 
+  const contactUrl = company?.slug === clientSlug ? articleWhatsAppUrl(company.whatsAppNumber, product?.name, new URL(`/${encodeURIComponent(clientSlug)}/product/${pid}`, window.location.origin).href) : null;
   return (
     <article className="relative md: xl:mx-52 grid md:grid-cols-2 gap-6">
       <button
@@ -283,6 +287,7 @@ const gallery = useMemo(() => {
               />)}
             </div>
           )}
+          {contactUrl && <a href={contactUrl} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex rounded-xl bg-green-700 px-4 py-3 font-semibold text-white hover:bg-green-800">Contactar por WhatsApp</a>}
         </div>
       </div>
     </article>

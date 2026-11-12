@@ -1,3 +1,6 @@
+import MediaAddButton from "../../components/MediaAddButton";
+import { uploadProductImage } from "../../services/catalog";
+import { useProductFormFields } from "../../hooks/useProductFormFields";
 import MoneyInput from "../../components/MoneyInput";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -6,6 +9,8 @@ import { useTenantConfig } from "../../store/tenantConfig";
 const money = (value) => Number(value).toLocaleString("es-AR", { style: "currency", currency: "ARS" });
 
 export default function InventoryPage() {
+  const { required } = useProductFormFields();
+  const [images, setImages] = useState([]);
   const enabled = useTenantConfig(s => s.isLoaded && s.features.store);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,8 +53,9 @@ export default function InventoryPage() {
   const save = async (event) => {
     event.preventDefault(); setSaving(true); setNotice(""); setError("");
     try {
-      await createCombo(name.trim(), Number(price), Object.fromEntries(Object.entries(selected).map(([id, qty]) => [id, Number(qty)])));
-      setName(""); setPrice(""); setSelected({}); setNotice("Combo creado. Ya está disponible en el catálogo y en ventas."); await load();
+      const uploaded = await Promise.all(images.map(async (image, sort) => ({ url: image.url ?? (await uploadProductImage(image.file)).url, sort })));
+      await createCombo(name.trim(), Number(price), Object.fromEntries(Object.entries(selected).map(([id, qty]) => [id, Number(qty)])), uploaded.length ? uploaded : undefined);
+      images.forEach(image => URL.revokeObjectURL(image.previewUrl)); setImages([]); setName(""); setPrice(""); setSelected({}); setNotice("Combo creado. Ya está disponible en el catálogo y en ventas."); await load();
     } catch (e) { setError(inventoryError(e)); }
     finally { setSaving(false); }
   };
@@ -67,20 +73,21 @@ export default function InventoryPage() {
         {loading ? <p role="status">Cargando inventario…</p> : <div className="grid gap-3 md:grid-cols-2">{items.filter(v => (kind === "all" || (kind === "subproducts" ? v.isSubproduct : !v.isSubproduct))).filter(v => `${v.name} ${v.sku}`.toLowerCase().includes(search.toLowerCase())).map(v => <article key={v.id} className="admin-card rounded-xl p-4 space-y-3">
           <div className="flex items-start gap-3">{!v.isCombo && !v.isSubproduct && <input type="checkbox" aria-label={`Agregar ${v.name} ${v.sku} al combo`} className="mt-1 h-5 w-5" disabled={(!v.hasSubproducts && v.stockQuantity == null) || v.isDisabled || saving} checked={selected[v.id] !== undefined} onChange={e => setSelected(prev => { const next = { ...prev }; if (e.target.checked) next[v.id] = 1; else delete next[v.id]; return next; })} />}<div><h3 className="font-bold">{v.name}</h3><p className="text-xs text-slate-300">{v.sku}</p></div></div>
           <p>{!v.isSubproduct && <>{v.currency} {Number(v.price).toLocaleString("es-AR")}</>} {v.isSubproduct && <span className="admin-chip">Subproducto · uso interno</span>} {v.hasSubproducts && <span className="admin-chip">Compuesto por subproductos</span>} {v.isCombo && <span className="admin-chip ml-2">Combo</span>}</p>
-          <p className={v.available === 0 ? "text-amber-200" : "text-cyan-100"}>{v.isDisabled ? "Inhabilitado" : v.available == null ? "Stock sin configurar" : `${v.available} ${v.isCombo ? "combos disponibles" : "unidades disponibles"}`}</p>
+          <p className={v.available === 0 ? "text-amber-200" : "text-cyan-100"}>{v.isDisabled ? "Inhabilitado" : v.available == null ? "Stock sin configurar" : `${v.available} ${v.isCombo ? "combos disponibles" : `${v.measurementUnit ?? "unidad"} disponibles`}`}</p>
           {!v.isCombo && !v.hasSubproducts && <StockEditor item={v} onSaved={load} onError={setError} />}
-          {(v.isCombo || v.hasSubproducts) && <ul className="text-sm text-slate-300">{Object.entries(v.components).map(([id, qty]) => <li key={id}>{qty} × {items.find(p => p.id === Number(id))?.name ?? "Producto no disponible"}</li>)}</ul>}
+          {(v.isCombo || v.hasSubproducts) && <ul className="text-sm text-slate-300">{Object.entries(v.components).map(([id, qty]) => <li key={id}>{qty} {items.find(p => p.id === Number(id))?.measurementUnit ?? "unidad"} × {items.find(p => p.id === Number(id))?.name ?? "Producto no disponible"}</li>)}</ul>}
           {selected[v.id] !== undefined && <label className="block text-sm">Unidades por combo<input form="combo-form" type="number" min="1" max="100000" required className="inputRan mt-1 w-full rounded p-2" value={selected[v.id]} onChange={e => setSelected(prev => ({ ...prev, [v.id]: e.target.value }))} /></label>}
         </article>)}</div>}
         {!loading && items.length === 0 && <p>Primero creá productos y sus variantes en el catálogo.</p>}
       </div>
       <form id="combo-form" onSubmit={save} className="admin-glass h-fit rounded-2xl p-5 space-y-5 xl:sticky xl:top-6">
         <h2 className="text-xl font-bold">Crear promo o combo</h2>
-        <label className="block">Nombre<input required maxLength="200" className="inputRan mt-2 w-full rounded-lg p-3" placeholder="Combo 1" value={name} onChange={e => setName(e.target.value)} /></label>
-        <label className="block">Precio final en pesos<MoneyInput required min="0.01" max="999999999" step="0.01" className="inputRan mt-2 w-full rounded-lg p-3" placeholder="5000" value={price} onValueChange={value => setPrice(value)} /></label>
+        <label className="block">Nombre<input required={required("name")} maxLength="200" className="inputRan mt-2 w-full rounded-lg p-3" placeholder="Combo 1" value={name} onChange={e => setName(e.target.value)} /></label>
+        <label className="block">Precio final en pesos<MoneyInput required={required("price")} min="0" max="999999999" step="0.01" className="inputRan mt-2 w-full rounded-lg p-3" placeholder="5000" value={price} onValueChange={value => setPrice(value)} /></label>
+        <section className="space-y-2"><h3>Imágenes de la promoción</h3><MediaAddButton disabled={saving} onFiles={files => setImages(prev => [...prev, ...files.map(file => ({ file, previewUrl: URL.createObjectURL(file) }))])} /><div className="flex flex-wrap gap-2">{images.map((image, index) => <div key={image.previewUrl}><img src={image.previewUrl} alt="" className="h-20 w-20 rounded object-cover" /><button type="button" className="admin-secondary p-1" onClick={() => { URL.revokeObjectURL(image.previewUrl); setImages(prev => prev.filter((_, i) => i !== index)); }}>Quitar</button></div>)}</div></section>
         <div className="space-y-2">{chosen.length ? chosen.map(v => <p key={v.id}>{selected[v.id]} × {v.name}</p>) : <p className="text-slate-300">Seleccioná los productos en la grilla.</p>}</div>
         {chosen.length > 0 && <div className="border-t border-white/15 pt-4 space-y-2"><p>Stock para {available} combos</p>{regular != null && <p className="text-sm text-slate-300">Por separado: {money(regular)}{Number(price) > 0 && Number(price) < regular ? ` · Ahorro: ${money(regular - Number(price))}` : ""}</p>}</div>}
-        <button disabled={saving || !chosen.length || !name.trim()} className="admin-primary w-full p-3 disabled:opacity-50">{saving ? "Guardando…" : "Crear combo"}</button>
+        <button disabled={saving || !chosen.length || (required("name") && !name.trim())} className="admin-primary w-full p-3 disabled:opacity-50">{saving ? "Guardando…" : "Crear combo"}</button>
         <p className="text-xs text-slate-300">Hereda la categoría y marca de un componente. Podés editar precio, imágenes y habilitación desde el catálogo.</p>
       </form>
     </div>
@@ -96,5 +103,5 @@ function StockEditor({ item, onSaved, onError }) {
     catch (e) { onError(inventoryError(e)); setDraft(null); await onSaved(); onError(inventoryError(e)); }
     finally { setSaving(false); }
   };
-  return <div className="flex items-end gap-2"><label className="min-w-0 flex-1 text-sm">Existencia total<input aria-label={`Existencia de ${item.name} ${item.sku}`} type="number" min="0" step="1" className="inputRan mt-1 w-full rounded p-2" value={draft?.value ?? item.stockQuantity ?? ""} placeholder="Configurar" onChange={e => setDraft(prev => ({ value: e.target.value, expected: prev ? prev.expected : item.stockQuantity }))} /></label><button type="button" className="admin-secondary px-2 py-2" disabled={saving || !draft || draft.value === "" || !Number.isSafeInteger(Number(draft.value)) || Number(draft.value) < 0} onClick={save}>{saving ? "…" : "Guardar"}</button></div>;
+  return <div className="flex items-end gap-2"><label className="min-w-0 flex-1 text-sm">Existencia total<input aria-label={`Existencia de ${item.name} ${item.sku}`} type="number" min="0" step="0.001" className="inputRan mt-1 w-full rounded p-2" value={draft?.value ?? item.stockQuantity ?? ""} placeholder="Configurar" onChange={e => setDraft(prev => ({ value: e.target.value, expected: prev ? prev.expected : item.stockQuantity }))} /></label><span className="pb-2 text-sm">{item.measurementUnit ?? "unidad"}</span><button type="button" className="admin-secondary px-2 py-2" disabled={saving || !draft || draft.value === "" || !Number.isFinite(Number(draft.value)) || Number(draft.value) < 0} onClick={save}>{saving ? "…" : "Guardar"}</button></div>;
 }

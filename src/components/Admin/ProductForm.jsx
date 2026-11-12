@@ -1,3 +1,4 @@
+import { useProductFormFields } from "../../hooks/useProductFormFields";
 import SubproductEditor from "./SubproductEditor";
 import MoneyInput from "../MoneyInput";
 // src/admin/ProductForm.jsx
@@ -50,6 +51,7 @@ export default function ProductForm({
   productId = null,
   onSaved,
 }) {
+  const { required } = useProductFormFields();
   const features = useTenantConfig((state) => state.features);
   const usdEnabled = independentBlockEnabled(features, "dollarQuote", "store");
   const isNewProduct = !initial && !productId;
@@ -151,7 +153,7 @@ useEffect(() => {
       brandId: p.brandId ?? null,
       providerId: p.providerId ?? null,
       categoryId: p.categoryId ?? null,
-      images: [], // 🚫 ya no usamos imágenes de producto
+      images: (p.images ?? []).map((i, sort) => ({ url: i.url ?? i, sort })),
       variants: Array.isArray(p.variants) ? p.variants.map(v => ({
         id: v.id ?? null, 
         colorId: typeof v.colorId === "number" ? v.colorId : null,
@@ -354,12 +356,12 @@ const quickAddCategory = async () => {
 
   // ====== Validación ======
   const validate = () => {
-    if (form.subproducts && Object.keys(form.subproducts).length === 0) return "Agregá al menos un subproducto o desactivá la composición";
-    if (Object.values(form.subproducts ?? {}).some(q => !Number.isSafeInteger(Number(q)) || Number(q) < 1 || Number(q) > 100000)) return "Indicá cantidades enteras entre 1 y 100000";
-    if (!payload.name?.trim()) return "Nombre requerido";
-    if (!payload.slug?.trim()) return "Slug requerido";
-    if (!payload.brandId) return "Marca requerida";
-    if (!payload.categoryId) return "Categoría requerida";
+    if (required("subproducts") && form.subproducts && Object.keys(form.subproducts).length === 0) return "Agregá al menos un subproducto o desactivá la composición";
+    if (Object.values(form.subproducts ?? {}).some(q => !Number.isFinite(Number(q)) || Number(q) <= 0 || Math.abs(Number(q) * 1000 - Math.round(Number(q) * 1000)) > 0.000001 || Number(q) > 100000)) return "Indicá cantidades positivas de hasta 100000 con máximo 3 decimales";
+    if (required("name") && !payload.name?.trim()) return "Nombre requerido";
+
+    if (required("brandId") && !payload.brandId) return "Marca requerida";
+    if (required("categoryId") && !payload.categoryId) return "Categoría requerida";
 
     if (payload.variants?.length > 0) {
       const defaults = payload.variants.filter(v => v.isDefault).length;
@@ -385,10 +387,11 @@ const save = async () => {
     setErr(null);
 
     // Clonar el form actual
-    const payload = { ...form, currency, subproducts: form.subproducts == null ? (isNewProduct ? null : {}) : Object.fromEntries(Object.entries(form.subproducts).map(([id, qty]) => [id, Number(qty)])) };
+    const payload = { ...form, brandId: form.brandId ?? 0, categoryId: form.categoryId ?? 0, currency, subproducts: form.subproducts == null ? (isNewProduct ? null : {}) : Object.fromEntries(Object.entries(form.subproducts).map(([id, qty]) => [id, Number(qty)])) };
     if (videosEnabled(features, "store")) payload.videoUrls = [...(form.videoUrls ?? []), ...await Promise.all(videoFiles.map((file) => uploadVideo(file, "store")))];
     else delete payload.videoUrls;
     console.log()
+    payload.images = await Promise.all((form.images ?? []).map(async (image, sort) => ({ url: image.url ?? (await uploadProductImage(image.file)).url, sort })));
     // Subir imágenes de cada variante
     payload.variants = await Promise.all(
       form.variants.map(async (variant) => {
@@ -452,7 +455,7 @@ const save = async () => {
           <label className="block text-sm font-medium mb-2">Nombre:</label>
           <input
             className="w-full border rounded px-3 py-2 inputRan"
-            value={form.name}
+            required={required("name")} value={form.name}
             onChange={e => setField("name", e.target.value)}
             onBlur={onNameBlur}
             placeholder="JBL Charge 6"
@@ -509,7 +512,7 @@ const save = async () => {
             <select
               translate="no"
               className="flex-1 border rounded px-3 py-2 inputRan"
-              value={form.brandId ?? ""}
+              required={required("brandId")} value={form.brandId ?? ""}
               onChange={e => setField("brandId", e.target.value ? Number(e.target.value) : null)}
             >
               <option value="">— Seleccionar —</option>
@@ -538,7 +541,7 @@ const save = async () => {
         <div className="flex gap-2 items-start flex-col sm:flex-row sm:items-center">
             <select
             className="flex-1 border rounded px-3 py-2"
-            value={form.categoryId ?? ""}
+            required={required("categoryId")} value={form.categoryId ?? ""}
             onChange={e => setField("categoryId", e.target.value ? Number(e.target.value) : null)}
             >
             <option value="">— Seleccionar —</option>
@@ -555,7 +558,7 @@ const save = async () => {
         </div>
 
         {creatingNewCategory && (
-            <div className="mt-3 border p-3 rounded bg-neutral-50 space-y-3">
+            <div className="admin-glass mt-3 border p-3 rounded space-y-3">
             <input
                 type="text"
                 className="w-full border px-3 py-2 rounded"
@@ -608,7 +611,10 @@ const save = async () => {
         </div>
       </div>
 
-      {/* 🚫 Imágenes de producto: eliminadas. Ahora solo por variante. */}
+      <section className="admin-glass rounded-xl p-4 space-y-3"><h2 className="font-semibold">Imágenes del producto o promoción</h2>
+        <MediaAddButton disabled={saving} onFiles={files => setField("images", [...form.images, ...files.map(file => ({ file, previewUrl: URL.createObjectURL(file) }))])} />
+        <div className="flex flex-wrap gap-3">{form.images.map((image, index) => <div key={image.url ?? image.previewUrl} className="relative"><img src={image.url ?? image.previewUrl} alt="" className="h-24 w-24 rounded object-cover" /><button type="button" aria-label="Quitar imagen" onClick={() => { if (image.previewUrl) URL.revokeObjectURL(image.previewUrl); setField("images", form.images.filter((_, i) => i !== index)); }} className="absolute right-0 top-0 rounded bg-red-800 px-2 text-white">×</button></div>)}</div>
+      </section>
 
       <SubproductEditor onBusyChange={setSubproductBusy} value={form.subproducts ?? null} onChange={value => setField("subproducts", value)} categoryId={form.categoryId} brandId={form.brandId} disabled={saving} />
 

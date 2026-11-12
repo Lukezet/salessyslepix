@@ -11,6 +11,7 @@ export default function Checkout() {
   const items = useCart((s) => s.items);
   const totalAmount = useCart((s) => s.totalAmount());
   const clear = useCart((s) => s.clear);
+  const cartScope = useCart((s) => s.scope);
 
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState(false);
@@ -69,11 +70,13 @@ export default function Checkout() {
       })));
 
       const phone = await getEmpresaPhoneNumber();
+      if (useCart.getState().scope !== cartScope) throw new Error("La tienda cambió. Revisá el carrito de la tienda actual antes de enviar el pedido.");
       await createOrder(payload);
       const mensaje = generarMensaje();
       const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(mensaje)}`;
 
-      clear();
+      clear(cartScope);
+      if (useCart.getState().scope !== cartScope) return;
       setOk(true);
       window.open(waUrl, "_blank");
     } catch (err) {

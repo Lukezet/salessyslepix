@@ -3,9 +3,11 @@ export function normalizeWhatsAppNumber(value) {
   return /^[1-9][0-9]{7,14}$/.test(number) ? number : null;
 }
 
-export function propertyWhatsAppUrl(number, title, propertyUrl) {
+export function articleWhatsAppUrl(number, title, articleUrl, kind = "artículo") {
   const phone = normalizeWhatsAppNumber(number);
   if (!phone) return null;
-  const message = `Hola, me interesa el inmueble "${title}". Quisiera más información y coordinar una visita.\n${propertyUrl}`;
+  const message = `Hola, quisiera consultar por el ${kind} "${title || "publicado"}". ¿Podrían darme más información?\n${articleUrl}`;
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
+
+export const propertyWhatsAppUrl = (number, title, url) => articleWhatsAppUrl(number, title, url, "inmueble");

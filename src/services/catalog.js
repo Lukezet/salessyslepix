@@ -1,3 +1,4 @@
+import { mapAdminToApi } from "./productPayload";
 // src/services/catalog.js (o el archivo que estás usando)
 import { axiosClient } from "../lib/axiosClient";
 /* ========= MAPPERS ========= */
@@ -30,38 +31,6 @@ function mapProductApiToAdmin(p) {
 }
 
 // Para enviar AL BACKEND desde ADMIN (estructura correcta)
-function mapAdminToApi(payload) {
-  return {
-    categoryId: payload.categoryId,
-    brandId: payload.brandId,
-    name: payload.name,
-    // si querés asegurar el slug auto desde el service:
-    // slug: slugify(payload.name),
-    description: payload.description,
-    price: Number(payload.price) || 0,
-
-    // 🚫 ya no usamos imágenes de producto
-    images: [],
-    currency: payload.currency,
-    // ✅ enviar IDs, no strings
-    variants: (payload.variants ?? []).map(v => ({
-      id: v.id ?? null, 
-      colorId: v.colorId ?? null,
-      sizeId:  v.sizeId  ?? null,
-      sku: v.sku || "", // (ya lo generás auto en el form)
-      priceOverride:
-        v.priceOverride === null || v.priceOverride === "" || typeof v.priceOverride === "undefined"
-          ? null
-          : Number(v.priceOverride),
-      isDefault: !!v.isDefault,
-      images: (v.images ?? []).map((vi, j) => ({
-        url: vi.url,
-        sort: typeof vi.sort === "number" ? vi.sort : j
-      }))
-    })),
-  };
-}
-
 /* ========= CATEGORÍAS ========= */
 
 export async function getCategories() {

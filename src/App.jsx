@@ -1,5 +1,6 @@
+import { useCart } from "./store/cart";
 import { Link, Outlet, useLocation, useParams } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import Navbar from "./components/Navbar";
 import { FloatingGuide } from "./components/guides/GuideButton";
 import { useAuth } from "./store/auth";
@@ -11,6 +12,10 @@ import { isVisitorPreview } from "./utils/visitorPreview";
 export default function App() {
   const location = useLocation();
   const { clientSlug = null } = useParams();
+  const cartScope = useCart(state => state.scope);
+  const configSlug = useTenantConfig(state => state.config?.slug);
+  const targetCartScope = (clientSlug || configSlug || "").trim().toLowerCase() || null;
+  useLayoutEffect(() => { useCart.getState().setScope(targetCartScope); }, [targetCartScope]);
   const isPortalEntry = location.pathname === "/";
   const tenantConfig = useTenantConfig((state) => state.config);
   const tenantIsLoaded = useTenantConfig((state) => state.isLoaded);
@@ -36,7 +41,7 @@ export default function App() {
   // Nunca mostramos la paleta por defecto de LePix mientras se resuelve la
   // empresa de la URL: una marca equivocada, aunque sea por un instante,
   // hace parecer que el portal pertenece a otro cliente.
-  if (!isPublicTenantReady || (!isVisitorPreview(location.search) && (!authInitialized || sessionContext !== clientSlug))) {
+  if (cartScope !== targetCartScope || !isPublicTenantReady || (!isVisitorPreview(location.search) && (!authInitialized || sessionContext !== clientSlug))) {
     return <PublicPortalSkeleton />;
   }
 
