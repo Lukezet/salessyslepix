@@ -41,7 +41,7 @@ export default function Home() {
     try {
       setErr(null);
       setLoading(true);
-      const data = await getCategories();
+      const data = await getCategories({ catalogOnly: true });
       setCats(data);
     } catch (e) {
       console.error(e);
@@ -149,6 +149,7 @@ export default function Home() {
 
       {/* Error */}
       {err && <p className="text-red-600 mb-3">{err}</p>}
+      {!loading && !err && cats.length === 0 && <p className="rounded-xl border border-current/15 p-5">Todavía no hay categorías con productos disponibles.</p>}
 
       {/* Loading skeleton */}
       {loading ? (

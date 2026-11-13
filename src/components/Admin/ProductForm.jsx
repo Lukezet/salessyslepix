@@ -616,7 +616,7 @@ const save = async () => {
         <div className="flex flex-wrap gap-3">{form.images.map((image, index) => <div key={image.url ?? image.previewUrl} className="relative"><img src={image.url ?? image.previewUrl} alt="" className="h-24 w-24 rounded object-cover" /><button type="button" aria-label="Quitar imagen" onClick={() => { if (image.previewUrl) URL.revokeObjectURL(image.previewUrl); setField("images", form.images.filter((_, i) => i !== index)); }} className="absolute right-0 top-0 rounded bg-red-800 px-2 text-white">×</button></div>)}</div>
       </section>
 
-      <SubproductEditor onBusyChange={setSubproductBusy} value={form.subproducts ?? null} onChange={value => setField("subproducts", value)} categoryId={form.categoryId} brandId={form.brandId} disabled={saving} />
+      <SubproductEditor onBusyChange={setSubproductBusy} value={form.subproducts ?? null} onChange={value => setField("subproducts", value)} brandId={form.brandId} disabled={saving} />
 
       {/* Variantes */}
       <div>

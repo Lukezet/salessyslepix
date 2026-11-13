@@ -33,8 +33,8 @@ function mapProductApiToAdmin(p) {
 // Para enviar AL BACKEND desde ADMIN (estructura correcta)
 /* ========= CATEGORÍAS ========= */
 
-export async function getCategories() {
-  const { data } = await axiosClient.get("/api/Categories");
+export async function getCategories({ catalogOnly = false } = {}) {
+  const { data } = await axiosClient.get("/api/Categories", { params: { catalogOnly } });
   return data;
 }
 export async function getCategoryById(id) {

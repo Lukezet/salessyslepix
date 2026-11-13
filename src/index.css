@@ -315,6 +315,18 @@
 .tenant-product table tbody tr:hover { background: #f8fafc !important; }
 
 /* Sales keep their status color across every cell, including on hover. */
+.order-whatsapp-actions .order-whatsapp-action {
+  display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
+  padding: .6rem .8rem; border-radius: .7rem; border: 1px solid transparent;
+  color: #065f46; background: transparent; font-size: .75rem; font-weight: 650;
+  text-decoration: none; transition: background .15s, border-color .15s;
+}
+.order-whatsapp-actions .order-whatsapp-action:hover,
+.order-whatsapp-actions .order-whatsapp-action:focus-visible {
+  background: #10b98115; border-color: #10b981; outline: 2px solid transparent;
+}
+.order-whatsapp-actions .order-whatsapp-action:focus-visible { outline-color: #10b981; outline-offset: 2px; }
+.admin-premium:not(.tenant-product) .order-whatsapp-actions .order-whatsapp-action { color: #6ee7b7; }
 .sales-state-row { --sales-row: #f1f5f9; --sales-ink: #0f172a; }
 .sales-state-row[data-state="Pending"] { --sales-row: #fef3c7; }
 .sales-state-row[data-state="Approved"] { --sales-row: #dbeafe; }

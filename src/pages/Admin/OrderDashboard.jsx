@@ -1,4 +1,5 @@
 import MoneyInput from "../../components/MoneyInput";
+import { createPortal } from "react-dom";
 import React, { useEffect, useMemo, useState } from "react";
 import { getOrders, getOrdersSummary, deleteOrder, updateOrderState, updateOrder, searchProducts2} from "../../services/catalog";
 import { formatDateTime } from "../../utils/formatDateTime";
@@ -468,11 +469,11 @@ const closeProductPanel = () => { setProdOpen(false); };
       </div>
 
       {/* Drawer: detalle */}
-{selected  && ( 
-  <div className="fixed inset-0 z-40">
+{selected && createPortal(
+  <div className="admin-premium tenant-product fixed inset-0 z-[1100]" role="dialog" aria-modal="true" aria-label={`Detalle del pedido ${selected.id}`}>
     <div className="absolute inset-0 bg-black/30" onClick={() => { setSelected(null); setEditMode(false); setEditModel(null); }} />
     <div className="absolute right-0 top-0 h-full w-11/12 sm:w-[620px] bg-white rounded-bl-4xl border-l-4 border-amber-400 rounded-l-4xl shadow-xl p-5 overflow-y-auto">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold">Orden #{selected.id}</h3>
           <p className="text-sm text-gray-500">{formatDateTime(selected.createdAt)}</p>
@@ -810,15 +811,15 @@ const closeProductPanel = () => { setProdOpen(false); };
           >
             Eliminar orden
           </button>
-        </div>
+        </div>, document.body
       )}
     </div>
-  </div>
+  </div>, document.body
 )}
 
       {/* Confirmación de borrado */}
-      {confirmDelete && (
-        <div className="fixed inset-0 z-50">
+      {confirmDelete && createPortal(
+        <div className="admin-premium tenant-product fixed inset-0 z-[1200]" role="dialog" aria-modal="true" aria-label="Confirmar eliminación del pedido">
           <div className="absolute inset-0 bg-black/30" onClick={() => setConfirmDelete(null)} />
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-[460px] bg-white rounded-2xl shadow-xl p-5">
             <h3 className="text-lg font-semibold">Eliminar orden #{confirmDelete.id}</h3>

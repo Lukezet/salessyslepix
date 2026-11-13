@@ -2,9 +2,10 @@ import MediaAddButton from "../../components/MediaAddButton";
 import { uploadProductImage } from "../../services/catalog";
 import { useProductFormFields } from "../../hooks/useProductFormFields";
 import MoneyInput from "../../components/MoneyInput";
+import IngredientGroupSelector from "../../components/Admin/IngredientGroupSelector";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { createCombo, getInventory, inventoryError, setStock } from "../../services/inventory";
+import { createCombo, getInventory, inventoryError, setStock, getIngredientGroups, createIngredientGroup, assignIngredientGroup } from "../../services/inventory";
 import { useTenantConfig } from "../../store/tenantConfig";
 const money = (value) => Number(value).toLocaleString("es-AR", { style: "currency", currency: "ARS" });
 
@@ -13,6 +14,9 @@ export default function InventoryPage() {
   const [images, setImages] = useState([]);
   const enabled = useTenantConfig(s => s.isLoaded && s.features.store);
   const [items, setItems] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [groupFilter, setGroupFilter] = useState("all");
+  const [groupSaving, setGroupSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -24,7 +28,7 @@ export default function InventoryPage() {
   const [saving, setSaving] = useState(false);
   const [updated, setUpdated] = useState(null);
   const load = useCallback(async () => {
-    try { setItems(await getInventory()); setUpdated(new Date()); setError(""); }
+    try { const [stock, loadedGroups] = await Promise.all([getInventory(), getIngredientGroups()]); setItems(stock); setGroups(loadedGroups); setUpdated(new Date()); setError(""); }
     catch (e) { setError(inventoryError(e)); }
     finally { setLoading(false); }
   }, []);
@@ -40,6 +44,21 @@ export default function InventoryPage() {
     return () => { active = false; clearTimeout(timer); };
   }, [enabled, load]);
   const chosen = items.filter(v => selected[v.id] !== undefined);
+  const createGroup = async (groupName) => {
+    setGroupSaving(true); setError("");
+    try {
+      const group = await createIngredientGroup(groupName);
+      setGroups(prev => [...prev.filter(g => g.id !== group.id), group].sort((a, b) => a.name.localeCompare(b.name)));
+      return group;
+    } catch (e) { setError(inventoryError(e)); return null; }
+    finally { setGroupSaving(false); }
+  };
+  const changeGroup = async (id, groupId) => {
+    setGroupSaving(true); setError("");
+    try { await assignIngredientGroup(id, groupId); await load(); setNotice("Grupo del insumo actualizado. Su stock y recetas no cambiaron."); }
+    catch (e) { setError(inventoryError(e)); }
+    finally { setGroupSaving(false); }
+  };
   const requirements = {};
   for (const item of chosen) {
     const parts = item.hasSubproducts ? item.components : { [item.id]: 1 };
@@ -70,10 +89,12 @@ export default function InventoryPage() {
         <p className="text-sm text-slate-300">Cargá el stock inicial para activar el control. Los productos sin configurar conservan su venta sin límite. Seleccioná productos para armar una promo.</p>
         <label className="block">Mostrar<select className="inputRan ml-3 rounded p-2" value={kind} onChange={e => setKind(e.target.value)}><option value="all">Todo el stock</option><option value="subproducts">Subproductos</option><option value="products">Productos y promociones</option></select></label>
         <label className="block">Buscar producto o SKU<input className="inputRan mt-2 w-full rounded-lg p-3" value={search} onChange={e => setSearch(e.target.value)} placeholder="Gaseosa, hamburguesa…" /></label>
-        {loading ? <p role="status">Cargando inventario…</p> : <div className="grid gap-3 md:grid-cols-2">{items.filter(v => (kind === "all" || (kind === "subproducts" ? v.isSubproduct : !v.isSubproduct))).filter(v => `${v.name} ${v.sku}`.toLowerCase().includes(search.toLowerCase())).map(v => <article key={v.id} className="admin-card rounded-xl p-4 space-y-3">
+        {kind !== "products" && <label className="block text-sm">Grupo interno de insumos<select value={groupFilter} onChange={e => setGroupFilter(e.target.value)} className="inputRan mt-1 w-full rounded p-2"><option value="all">Todos los grupos</option><option value="none">Sin grupo</option>{groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}</select><span className="mt-1 block text-slate-300">Los grupos son internos y no crean categorías en el catálogo.</span></label>}
+        {loading ? <p role="status">Cargando inventario…</p> : <div className="grid gap-3 md:grid-cols-2">{items.filter(v => (kind === "all" || (kind === "subproducts" ? v.isSubproduct : !v.isSubproduct))).filter(v => kind === "products" || groupFilter === "all" || (v.isSubproduct && (groupFilter === "none" ? !v.ingredientGroupId : v.ingredientGroupId === Number(groupFilter)))).filter(v => `${v.name} ${v.sku}`.toLowerCase().includes(search.toLowerCase())).map(v => <article key={v.id} className="admin-card rounded-xl p-4 space-y-3">
           <div className="flex items-start gap-3">{!v.isCombo && !v.isSubproduct && <input type="checkbox" aria-label={`Agregar ${v.name} ${v.sku} al combo`} className="mt-1 h-5 w-5" disabled={(!v.hasSubproducts && v.stockQuantity == null) || v.isDisabled || saving} checked={selected[v.id] !== undefined} onChange={e => setSelected(prev => { const next = { ...prev }; if (e.target.checked) next[v.id] = 1; else delete next[v.id]; return next; })} />}<div><h3 className="font-bold">{v.name}</h3><p className="text-xs text-slate-300">{v.sku}</p></div></div>
           <p>{!v.isSubproduct && <>{v.currency} {Number(v.price).toLocaleString("es-AR")}</>} {v.isSubproduct && <span className="admin-chip">Subproducto · uso interno</span>} {v.hasSubproducts && <span className="admin-chip">Compuesto por subproductos</span>} {v.isCombo && <span className="admin-chip ml-2">Combo</span>}</p>
           <p className={v.available === 0 ? "text-amber-200" : "text-cyan-100"}>{v.isDisabled ? "Inhabilitado" : v.available == null ? "Stock sin configurar" : `${v.available} ${v.isCombo ? "combos disponibles" : `${v.measurementUnit ?? "unidad"} disponibles`}`}</p>
+          {v.isSubproduct && <IngredientGroupSelector groups={groups} value={v.ingredientGroupId} disabled={groupSaving} onCreate={createGroup} onChange={group => changeGroup(v.id, group)} />}
           {!v.isCombo && !v.hasSubproducts && <StockEditor item={v} onSaved={load} onError={setError} />}
           {(v.isCombo || v.hasSubproducts) && <ul className="text-sm text-slate-300">{Object.entries(v.components).map(([id, qty]) => <li key={id}>{qty} {items.find(p => p.id === Number(id))?.measurementUnit ?? "unidad"} × {items.find(p => p.id === Number(id))?.name ?? "Producto no disponible"}</li>)}</ul>}
           {selected[v.id] !== undefined && <label className="block text-sm">Unidades por combo<input form="combo-form" type="number" min="1" max="100000" required className="inputRan mt-1 w-full rounded p-2" value={selected[v.id]} onChange={e => setSelected(prev => ({ ...prev, [v.id]: e.target.value }))} /></label>}

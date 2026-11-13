@@ -15,3 +15,6 @@ export async function createSubproduct(input) {
 export async function getMeasurementUnits() { return (await axiosClient.get("/api/inventory/units")).data; }
 export async function createMeasurementUnit(name) { return (await axiosClient.post("/api/inventory/units", { name })).data; }
 export async function getProductFormFields() { return (await axiosClient.get("/api/inventory/form-fields")).data; }
+export async function getIngredientGroups() { return (await axiosClient.get("/api/inventory/ingredient-groups")).data; }
+export async function createIngredientGroup(name) { return (await axiosClient.post("/api/inventory/ingredient-groups", { name })).data; }
+export async function assignIngredientGroup(variantId, ingredientGroupId) { await axiosClient.put(`/api/inventory/subproducts/${variantId}/group`, { ingredientGroupId }); }
