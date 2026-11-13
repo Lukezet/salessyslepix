@@ -12,7 +12,13 @@ export function articleWhatsAppUrl(number, title, articleUrl, kind = "artículo"
 
 export const propertyWhatsAppUrl = (number, title, url) => articleWhatsAppUrl(number, title, url, "inmueble");
 
-export function orderWhatsAppUrl(order, notification, companyName = "") {
+export function shouldUseWhatsAppWeb(userAgent = globalThis.navigator?.userAgent ?? "", maxTouchPoints = globalThis.navigator?.maxTouchPoints ?? 0) {
+  const mobile = /Android|iPhone|iPad|iPod/i.test(userAgent)
+    || (/Macintosh/i.test(userAgent) && maxTouchPoints > 1);
+  return !mobile;
+}
+
+export function orderWhatsAppUrl(order, notification, companyName = "", useWeb = shouldUseWhatsAppWeb()) {
   const phone = normalizeWhatsAppNumber(order?.customerPhone);
   if (!phone || order?.state === "Cancelled" || order?.state === "Delivered") return null;
   const messages = {
@@ -22,5 +28,10 @@ export function orderWhatsAppUrl(order, notification, companyName = "") {
   if (!messages[notification]) return null;
   const greeting = order.customerName?.trim() ? `¡Hola ${order.customerName.trim()}! 👋` : "¡Hola! 👋";
   const company = companyName.trim() ? `\nSomos ${companyName.trim()}.` : "";
-  return `https://wa.me/${phone}?text=${encodeURIComponent(`${greeting}${company}\n\n🧾 Pedido #${order.id}\n${messages[notification]}`)}`;
+  const text = encodeURIComponent(`${greeting}${company}\n\n🧾 Pedido #${order.id}\n${messages[notification]}`);
+  // On computers avoid the click-to-chat redirect/desktop-app handoff.
+  // Keep one UTF-8 encoding of the complete message, including joined emoji.
+  return useWeb
+    ? `https://web.whatsapp.com/send?phone=${phone}&text=${text}`
+    : `https://wa.me/${phone}?text=${text}`;
 }

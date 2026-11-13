@@ -175,7 +175,7 @@ export default function Navbar() {
   };
 
   return (
-    <header
+    <header data-app-navbar
       className={`${isPlatformAdmin ? "admin-navbar" : "tenant-header"} sticky top-0 z-[1000] rounded-b-xl sm:rounded-br-full`}
     >
       <div

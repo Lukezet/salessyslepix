@@ -239,6 +239,7 @@
   pointer-events: none;
 }
 .admin-shell { max-width: 1200px; margin-inline: auto; padding: 1.25rem 0 3rem; }
+.app-side-panel.admin-premium::before { display: none; }
 .admin-title { color: #f8fafc; font-size: clamp(2rem, 4vw, 3.25rem); font-weight: 700; letter-spacing: -.035em; line-height: 1.08; }
 .admin-subtitle { color: var(--admin-muted); max-width: 42rem; }
 .admin-glass { background: var(--admin-panel); border: 1px solid var(--admin-line); box-shadow: 0 20px 60px rgba(0, 0, 0, .23); backdrop-filter: blur(16px); }

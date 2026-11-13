@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { getProductsPaginated, deleteProduct, setProductVariantDisabled } from "../../services/catalog";
 import PriceIncreasePanel from "../../components/Admin/PriceIncreasePanel";
 import ProductForm from "../../components/Admin/ProductForm";
+import SidePanel from "../../components/SidePanel";
 import ProductBulkImport from "../../components/Admin/ProductBulkImport";
 import { useTenantConfig } from "../../store/tenantConfig";
 import ClientsPage from "./ClientsPage";
@@ -351,8 +352,8 @@ const filtered = useMemo(() => {
       )}
       {/* PANEL DE AUMENTOS */}
       {showIncrease && (
-        <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setShowIncrease(false)}>
-          <div className="absolute right-0 top-0 bottom-0 w-full  xl:w-[1200px] bg-white shadow-xl overflow-y-auto p-4"
+        <SidePanel label="Aumentos de precio" onClose={() => setShowIncrease(false)}>
+          <div className="absolute right-0 top-0 bottom-0 w-full xl:w-[1200px] bg-white shadow-xl overflow-y-auto overscroll-contain p-4"
                onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-medium">Aumentos de precio</h2>
@@ -363,13 +364,13 @@ const filtered = useMemo(() => {
               onApplied={onAppliedIncreases}
             />
           </div>
-        </div>
+        </SidePanel>
       )}
       {/* PANEL DE EDICIÓN / CREACIÓN */}
       {(creating || editingId) && (
-        <div className="fixed inset-0 bg-black/30 z-40" onClick={closePanel}>
+        <SidePanel label={creating ? "Nuevo producto" : "Editar producto"} onClose={closePanel}>
           <div
-            className="absolute right-0 top-0 bottom-0 w-full sm:w-[720px] bg-white shadow-xl overflow-y-auto p-4"
+            className="absolute right-0 top-0 bottom-0 w-full sm:w-[720px] bg-white shadow-xl overflow-y-auto overscroll-contain p-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -385,7 +386,7 @@ const filtered = useMemo(() => {
               <ProductForm productId={editingId} onSaved={onSaved} />
             )}
           </div>
-        </div>
+        </SidePanel>
       )}
     </div></section>
   );

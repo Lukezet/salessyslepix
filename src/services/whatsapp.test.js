@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeWhatsAppNumber, propertyWhatsAppUrl, orderWhatsAppUrl } from "./whatsapp.js";
+import { normalizeWhatsAppNumber, propertyWhatsAppUrl, orderWhatsAppUrl, shouldUseWhatsAppWeb } from "./whatsapp.js";
 
 test("WhatsApp accepts international formatting and rejects invalid destinations", () => {
   assert.equal(normalizeWhatsAppNumber("+54 9 (264) 123-4567"), "5492641234567");
@@ -12,7 +12,7 @@ test("WhatsApp accepts international formatting and rejects invalid destinations
 
 test("order notifications encode the customer and distinguish preparation from pickup", () => {
   const order = { id: 42, customerName: "Ana & José", customerPhone: "+54 9 (264) 123-4567", state: "Approved" };
-  const taken = new URL(orderWhatsAppUrl(order, "taken", "Mi comercio & cocina"));
+  const taken = new URL(orderWhatsAppUrl(order, "taken", "Mi comercio & cocina", false));
   assert.equal(taken.pathname, "/5492641234567");
   assert.equal([...taken.searchParams].length, 1);
   assert.match(taken.searchParams.get("text"), /Ana & José[\s\S]*#42[\s\S]*en preparación/);
@@ -23,6 +23,33 @@ test("order notifications encode the customer and distinguish preparation from p
   assert.equal(orderWhatsAppUrl({ ...order, customerPhone: "" }, "taken"), null);
   assert.equal(orderWhatsAppUrl({ ...order, customerPhone: "123" }, "taken"), null);
   assert.equal(orderWhatsAppUrl(order, "unknown"), null);
+});
+
+test("desktop messages bypass redirects and preserve the entire Unicode message", () => {
+  const order = { id: 2, customerName: "Juan Díaz", customerPhone: "+54 9 264 1234567", state: "Approved" };
+  for (const notification of ["taken", "ready"]) {
+    const mobile = new URL(orderWhatsAppUrl(order, notification, "PuroHumo & Compañía", false));
+    const desktop = new URL(orderWhatsAppUrl(order, notification, "PuroHumo & Compañía", true));
+    assert.equal(desktop.origin, "https://web.whatsapp.com");
+    assert.equal(desktop.pathname, "/send");
+    assert.equal(desktop.searchParams.get("phone"), "5492641234567");
+    assert.equal(desktop.searchParams.get("text"), mobile.searchParams.get("text"));
+    assert.equal([...desktop.searchParams].length, 2);
+    assert.ok(!desktop.searchParams.get("text").includes("\uFFFD"));
+    assert.ok(desktop.searchParams.get("text").includes("👋"));
+    assert.ok(desktop.searchParams.get("text").includes("🧾"));
+    assert.ok(desktop.searchParams.get("text").includes("✅"));
+  }
+  assert.equal(new URL(orderWhatsAppUrl(order, "ready", "PuroHumo", true)).searchParams.get("text"),
+    "¡Hola Juan Díaz! 👋\nSomos PuroHumo.\n\n🧾 Pedido #2\n🛍️ Tu pedido ya está listo y te espera para retirar. ✅\n¡Gracias por elegirnos! 🙌");
+});
+
+test("phones and tablets keep mobile links while computers use WhatsApp Web", () => {
+  assert.equal(shouldUseWhatsAppWeb("Mozilla/5.0 (Windows NT 10.0; Win64; x64)"), true);
+  assert.equal(shouldUseWhatsAppWeb("Mozilla/5.0 (Macintosh; Intel Mac OS X)"), true);
+  assert.equal(shouldUseWhatsAppWeb("Mozilla/5.0 (Linux; Android 14)"), false);
+  assert.equal(shouldUseWhatsAppWeb("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)"), false);
+  assert.equal(shouldUseWhatsAppWeb("Mozilla/5.0 (Macintosh; Intel Mac OS X)", 5), false);
 });
 
 test("property message preserves title and canonical link as a single encoded parameter", () => {
