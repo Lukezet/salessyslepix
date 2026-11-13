@@ -1,5 +1,6 @@
 // src/components/StateDropdown.jsx
 import { useEffect, useRef, useState } from "react";
+import { orderStateLabel } from "../utils/orderState";
 
 const STATUS = ["Pending", "Approved", "Delivered", "Cancelled"];
 
@@ -43,7 +44,7 @@ export default function StateDropdown({ o, onChangeState }) {
                 st === o.state ? "opacity-60" : ""
               }`}
             >
-              {st}
+              {orderStateLabel(st)}
             </button>
           ))}
         </div>

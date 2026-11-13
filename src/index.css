@@ -313,3 +313,22 @@
 .tenant-product table { color: #0f172a; }
 .tenant-product table thead { color: #475569; background: #f8fafc; }
 .tenant-product table tbody tr:hover { background: #f8fafc !important; }
+
+/* Sales keep their status color across every cell, including on hover. */
+.sales-state-row { --sales-row: #f1f5f9; --sales-ink: #0f172a; }
+.sales-state-row[data-state="Pending"] { --sales-row: #fef3c7; }
+.sales-state-row[data-state="Approved"] { --sales-row: #dbeafe; }
+.sales-state-row[data-state="Delivered"] { --sales-row: #d1fae5; }
+.sales-state-row[data-state="Cancelled"] { --sales-row: #ffe4e6; }
+.admin-premium .sales-state-row { --sales-ink: #e2e8f0; --sales-row: #1e293b; }
+.admin-premium .sales-state-row[data-state="Pending"] { --sales-row: #40351d; }
+.admin-premium .sales-state-row[data-state="Approved"] { --sales-row: #19344f; }
+.admin-premium .sales-state-row[data-state="Delivered"] { --sales-row: #153c32; }
+.admin-premium .sales-state-row[data-state="Cancelled"] { --sales-row: #452532; }
+table tbody .sales-state-row > td {
+  background: var(--sales-row) !important;
+  color: var(--sales-ink) !important;
+}
+table tbody .sales-state-row:hover > td {
+  background: color-mix(in srgb, var(--sales-row) 90%, var(--sales-ink)) !important;
+}

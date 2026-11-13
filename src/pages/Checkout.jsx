@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { useTenantConfig } from "../store/tenantConfig";
 import { useCart } from "../store/cart";
 import { createOrder, getEmpresaPhoneNumber  } from "../services/catalog";
 import { formatPrice } from "../utils/format";
@@ -7,6 +8,8 @@ import { isVisitorPreview as getVisitorPreviewMode } from "../utils/visitorPrevi
 
 export default function Checkout() {
   const location = useLocation();
+  const internalStore = useTenantConfig((s) => s.features.storeInternal);
+  const ordersPath = location.pathname.replace(/\/checkout\/?$/, "/ordersDashboard");
   const isVisitorPreview = getVisitorPreviewMode(location.search);
   const items = useCart((s) => s.items);
   const totalAmount = useCart((s) => s.totalAmount());
@@ -15,6 +18,7 @@ export default function Checkout() {
 
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState(false);
+  const [orderId, setOrderId] = useState(null);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -43,7 +47,7 @@ export default function Checkout() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (loading || isVisitorPreview) return;
+    if (loading || isVisitorPreview || !items.length) return;
     setLoading(true);
 
     try {
@@ -69,16 +73,18 @@ export default function Checkout() {
         fullProduct: i.product
       })));
 
-      const phone = await getEmpresaPhoneNumber();
+      const phone = internalStore ? null : await getEmpresaPhoneNumber();
       if (useCart.getState().scope !== cartScope) throw new Error("La tienda cambió. Revisá el carrito de la tienda actual antes de enviar el pedido.");
-      await createOrder(payload);
-      const mensaje = generarMensaje();
-      const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(mensaje)}`;
+      const order = await createOrder(payload);
 
       clear(cartScope);
       if (useCart.getState().scope !== cartScope) return;
+      setOrderId(order.id);
       setOk(true);
-      window.open(waUrl, "_blank");
+      if (!internalStore) {
+        const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(generarMensaje())}`;
+        window.open(waUrl, "_blank");
+      }
     } catch (err) {
       console.error("Error al crear la orden", err);
       alert(err?.response?.data?.message || err?.message || "Ocurrió un error al crear la orden.");
@@ -90,8 +96,10 @@ export default function Checkout() {
   if (ok) {
     return (
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold">¡Gracias!</h1>
-        <p>Tu pedido fue enviado. Te contactaremos a la brevedad.</p>
+        <h1 className="text-2xl font-semibold">{internalStore ? `Pedido #${orderId} creado` : "¡Gracias!"}</h1>
+        <p>{internalStore ? "El pedido quedó aprobado. Podés gestionarlo o cancelarlo desde el panel de pedidos." : "Tu pedido fue enviado. Te contactaremos a la brevedad."}</p>
+        {internalStore && <Link to={ordersPath} className="inline-block underline">Ver pedidos</Link>}
+        {internalStore && <Link to={location.pathname.replace(/\/checkout\/?$/, "") || "/"} className="ml-4 inline-block underline">Seguir cargando</Link>}
       </div>
     );
   }
@@ -105,10 +113,10 @@ export default function Checkout() {
 
   return (
     <section className="max-w-xl space-y-4">
-      <h1 className="text-2xl font-semibold mb-4">Datos de contacto</h1>
+      <h1 className="text-2xl font-semibold mb-4">{internalStore ? "Crear pedido interno" : "Datos de contacto"}</h1>
       <form className="space-y-3" onSubmit={onSubmit}>
         <div>
-          <label className="block text-sm mb-1">Nombre</label>
+          <label className="block text-sm mb-1">{internalStore ? "Nombre del comprador o solicitante" : "Nombre"}</label>
           <input
             required
             className="w-full border rounded px-3 h-10"
@@ -116,7 +124,7 @@ export default function Checkout() {
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
         </div>
-        <div>
+        {!internalStore && <div>
           <label className="block text-sm mb-1">Email</label>
           <input
             required
@@ -125,11 +133,11 @@ export default function Checkout() {
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
-        </div>
+        </div>}
         <div>
-          <label className="block text-sm mb-1">Teléfono</label>
+          <label className="block text-sm mb-1">{internalStore ? "Teléfono (opcional)" : "Teléfono"}</label>
           <input
-            required
+            required={!internalStore}
             className="w-full border rounded px-3 h-10"
             placeholder="Ej: 1123456789"
             value={form.phone}
@@ -137,7 +145,7 @@ export default function Checkout() {
           />
         </div>
         <div>
-          <label className="block text-sm mb-1">Dirección</label>
+          <label className="block text-sm mb-1">{internalStore ? "Dirección (opcional)" : "Dirección"}</label>
           <input
             className="w-full border rounded px-3 h-10"
             value={form.address}
@@ -155,11 +163,11 @@ export default function Checkout() {
         </div>
         <button
           type="submit"
-          disabled={loading || isVisitorPreview}
+          disabled={loading || isVisitorPreview || !items.length}
           title={isVisitorPreview ? "El envío de pedidos está deshabilitado en la previsualización." : undefined}
           className="btn-custom px-4 py-2 rounded-xl border hover:shadow disabled:opacity-50 active:scale-95"
         >
-          {isVisitorPreview ? "Envío deshabilitado en vista previa" : loading ? "Enviando..." : "Enviar pedido"}
+          {isVisitorPreview ? "Envío deshabilitado en vista previa" : loading ? "Guardando..." : internalStore ? "Crear pedido aprobado" : "Enviar pedido"}
         </button>
       </form>
     </section>

@@ -3,6 +3,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { getOrders, getOrdersSummary, deleteOrder, updateOrderState, updateOrder, searchProducts2} from "../../services/catalog";
 import { formatDateTime } from "../../utils/formatDateTime";
 import StateDropdown from "../../components/StateDropdown";
+import OrderWhatsAppActions from "../../components/OrderWhatsAppActions";
+import { orderStateLabel } from "../../utils/orderState";
 // ======================
 // Utils
 // ======================
@@ -361,7 +363,7 @@ const closeProductPanel = () => { setProdOpen(false); };
           {summary.map((s, i) => (
             <li key={`${s.state}-${i}`} className={`rounded-2xl p-3 shadow flex items-center justify-between ${stateBg[s.state]} `}>
               <div className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 ring-1 ${stateColors[s.state] || "bg-gray-100 text-gray-700 ring-gray-200"}`}>
-                <span className="text-xs font-medium">{s.state}</span>
+                <span className="text-xs font-medium">{orderStateLabel(s.state)}</span>
               </div>
               <div className="text-right">
                 <p className="text-xs text-gray-500">Cantidad</p>
@@ -405,19 +407,20 @@ const closeProductPanel = () => { setProdOpen(false); };
                 </tr>
               )}
               {data?.items?.map((o) => (
-                <tr key={o.id} className="shadow hover:bg-amber-300">
+                <tr key={o.id} className="sales-state-row" data-state={o.state}>
                   <Td>#{o.id}</Td>
                   <Td>{formatDateTime(o.createdAt)}</Td>
                   <Td className="max-w-[220px] truncate">{o.customerName || "—"}</Td>
                   <Td className="max-w-[160px] truncate">{o.customerPhone || "—"}</Td>
                   <Td>
                     <div className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 ring-1 ${stateColors[o.state] || "bg-gray-100 text-gray-700 ring-gray-200"}`}>
-                      <span className="text-xs font-medium">{o.state}</span>
+                      <span className="text-xs font-medium">{orderStateLabel(o.state)}</span>
                     </div>
                   </Td>
                   <Td className="text-right font-semibold">{formatCurrency(o.total)}</Td>
                   <Td>
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <OrderWhatsAppActions order={o} />
                       <button
                         onClick={() => setSelected(o)}
                         className="px-2.5 py-1.5 rounded-xl border text-xs btn-custom hover:bg-gray-50"
@@ -474,7 +477,7 @@ const closeProductPanel = () => { setProdOpen(false); };
           <h3 className="text-lg font-semibold">Orden #{selected.id}</h3>
           <p className="text-sm text-gray-500">{formatDateTime(selected.createdAt)}</p>
           <div className={`mt-2 inline-flex items-center gap-2 rounded-full px-2.5 py-1 ring-1 ${stateColors[selected.state] || "bg-gray-100 text-gray-700 ring-gray-200"}`}>
-            <span className="text-xs font-medium">{selected.state}</span>
+            <span className="text-xs font-medium">{orderStateLabel(selected.state)}</span>
           </div>
         </div>
         <div className="flex gap-2">
@@ -789,6 +792,7 @@ const closeProductPanel = () => { setProdOpen(false); };
       {/* Acciones de estado + eliminar (se mantienen) */}
       {!editMode && (
         <div className="mt-6 flex-col items-end justify-end">
+          <div className="mb-4"><OrderWhatsAppActions order={selected} /></div>
           <div className="flex gap-2">
             {["Pending", "Approved", "Delivered", "Cancelled"].map((st) => (
               <button
@@ -796,7 +800,7 @@ const closeProductPanel = () => { setProdOpen(false); };
                 className={`px-3 py-1.5 rounded-xl border text-xs ${stateBg[st]} ${st === selected.state ? " panel-customLight-lite !bg-yellow-500" : "cursor-pointer"}`}
                 onClick={() => onChangeState(selected, st)}
               >
-                {st}
+                {orderStateLabel(st)}
               </button>
             ))}
           </div>
